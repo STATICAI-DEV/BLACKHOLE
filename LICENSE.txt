@@ -1,0 +1,51 @@
+BLACKHOLE PROPRIETARY SOFTWARE LICENCE
+
+Copyright © 2026 George Gomes. All rights reserved.
+Brand: STATICAI
+Product: BLACKHOLE
+Repository: STATICAI-DEV/BLACKHOLE
+
+1. PROPRIETARY STATUS
+BLACKHOLE is proprietary, closed-source software of the STATICAI brand, owned and controlled by George Gomes to the extent of the protectable original material. BLACKHOLE is not open-source software. All rights not expressly granted in a written licence are reserved.
+
+2. NO GENERAL LICENCE GRANT
+Possession of any source tree, wheel, archive, installer, documentation set, governance package, provenance record, binary, or other BLACKHOLE material does not grant ownership or a general right of use. Except under express written authority from George Gomes or an authorised STATICAI licensing instrument, no person or entity may use, copy, reproduce, modify, adapt, translate, merge, publish, disclose, distribute, redistribute, sublicense, sell, rent, lease, host, expose as a service, commercially exploit, create a derivative distribution from, or transfer BLACKHOLE.
+
+3. COMMERCIAL USE
+Commercial exploitation is reserved to STATICAI and expressly authorised written licensees. No third party may use BLACKHOLE for paid services, internal commercial automation, hosted or managed services, resale, OEM distribution, white-labelling, sublicensing, or competing commercial products without a separate written commercial licence.
+
+4. AUTHORISED END-USER USE
+An authorised recipient may execute BLACKHOLE only within the scope of the applicable written STATICAI agreement. Unless that agreement expressly grants additional rights, no source disclosure, redistribution, sublicensing, resale, hosting, publication, commercial exploitation, or derivative distribution right is granted.
+
+5. COPYING AND BACKUPS
+No copying is permitted except temporary copies made by normal execution, one reasonable archival backup by an authorised licensee, or copies expressly authorised in writing. All permitted copies must preserve ownership, copyright, provenance, integrity, and licence notices.
+
+6. REVERSE ENGINEERING AND CIRCUMVENTION
+To the maximum extent permitted by applicable law, a recipient may not reverse engineer, decompile, disassemble, derive source from object code, bypass technical restrictions, remove provenance, falsify release identity, remove ownership notices, or circumvent licence, policy, security, evidence, or integrity controls. Non-waivable statutory rights remain unaffected.
+
+7. THIRD-PARTY MATERIAL
+Third-party libraries, software, models, weights, datasets, fonts, media, standards, and other external material remain governed by their own rights and licences. This licence neither converts third-party works into STATICAI property nor makes BLACKHOLE open source because it interoperates with or depends on open-source components.
+
+8. BRAND AND TRADEMARK
+No independent right to use the STATICAI or BLACKHOLE names, logos, trade dress, or other brand identifiers is granted. A recipient may not imply ownership, endorsement, partnership, certification, or affiliation without written permission.
+
+9. CONFIDENTIALITY
+Non-public source code, governance, provenance records, security controls, build material, and internal documentation supplied under restricted access are confidential unless George Gomes expressly designates them for public release. Access does not create redistribution rights.
+
+10. TERMINATION
+Rights granted by a separate agreement are subject to that agreement. On termination or material breach, unauthorised use must cease and controlled copies must be returned or destroyed where legally and contractually required.
+
+11. WARRANTY AND LIABILITY
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, BLACKHOLE IS PROVIDED WITHOUT WARRANTIES EXCEPT THOSE EXPRESSLY STATED IN A SIGNED AGREEMENT. LIABILITY, SUPPORT, SERVICE LEVELS, INDEMNITIES, PRIVACY OBLIGATIONS, AND OTHER COMMERCIAL TERMS ARE GOVERNED BY THE APPLICABLE WRITTEN AGREEMENT AND LAW.
+
+12. RESERVATION OF RIGHTS
+All rights not expressly granted in writing are reserved by George Gomes.
+
+13. PRIOR LICENCE RECORDS
+This licence applies prospectively to material the licensor is entitled to license. It does not retroactively revoke rights validly granted for earlier copies under previous licences. Historical licences, provenance records and third-party rights remain unaffected.
+
+14. OWNER / LICENSOR
+George Gomes
+STATICAI
+
+This document is a project licence baseline and should receive jurisdiction-specific legal review before broad external commercial distribution.

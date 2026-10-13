@@ -1,0 +1,21 @@
+{
+  "package": "BLACKHOLE_CLEAN_INSTALL_2026-10-13",
+  "source_space": "BluStatic/BLACKHOLE",
+  "source_commit": "9534bd282ad1bb4ab16a9e1b128c297a6977a74d",
+  "validation": {
+    "automated_tests": "99/99 PASS",
+    "final_acceptance": "3/3 models PASS",
+    "recovery_validation": "PASS"
+  },
+  "excluded": [
+    "models and model weights",
+    "checkpoints",
+    "training data and datasets",
+    "logs and run metrics",
+    "lab/runtime state",
+    "reports",
+    "generated package metadata and caches",
+    "local virtual environments"
+  ],
+  "file_count": 87
+}
