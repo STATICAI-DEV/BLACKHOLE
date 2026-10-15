@@ -189,7 +189,7 @@ def test_claimed_job_with_missing_adapter_is_blocked_before_training(tmp_path: P
         "dataset_manifest": {
             "record_id": "a" * 20,
             "content_sha256": "b" * 64,
-            "artifact_uri": "hf://buckets/BluStatic/BLACKHOLE/DATA/train.jsonl",
+            "artifact_uri": "hf://buckets/STATICAI/BLACKHOLE/DATA/train.jsonl",
         },
     }
     client = FakeClient({"status": "CLAIMED", "job": _authorized_job(job), "claim_token": "claim-secret"})
@@ -241,9 +241,9 @@ def test_claim_validation_rejects_unapproved_validation_artifact(tmp_path: Path)
         "execution_target": "LOCAL",
         "config": {"execution_target": "LOCAL", "model_adapter": "fake"},
         "dataset_manifest": {
-            "artifact_uri": "hf://buckets/BluStatic/BLACKHOLE/DATA/train.jsonl",
+            "artifact_uri": "hf://buckets/STATICAI/BLACKHOLE/DATA/train.jsonl",
             "content_sha256": "a" * 64,
-            "validation_artifact_uri": "hf://buckets/BluStatic/OTHER/validation.jsonl",
+            "validation_artifact_uri": "hf://buckets/STATICAI/OTHER/validation.jsonl",
             "validation_content_sha256": "b" * 64,
         },
     }
@@ -273,7 +273,7 @@ def test_claim_applies_job_hyperparameters_before_cuda_inspection(tmp_path: Path
             "execution_target": "LOCAL",
             "config": config,
             "dataset_manifest": {
-                "artifact_uri": "hf://buckets/BluStatic/BLACKHOLE/DATA/train.jsonl",
+                "artifact_uri": "hf://buckets/STATICAI/BLACKHOLE/DATA/train.jsonl",
                 "content_sha256": "a" * 64,
             },
         }

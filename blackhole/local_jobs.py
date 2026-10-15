@@ -405,7 +405,7 @@ class LocalJobQueue:
             "learning_rate": float(source_config.get("learning_rate", 0.0003)),
             "checkpoint_interval": int(source_config.get("checkpoint_interval", 50)),
             "evaluation_interval": int(source_config.get("evaluation_interval", 10)),
-            "resume_checkpoint_uri": f"hf://buckets/BluStatic/BLACKHOLE/LAB/{relative}",
+            "resume_checkpoint_uri": f"hf://buckets/STATICAI/BLACKHOLE/LAB/{relative}",
             "resume_step": completed_step,
             "dataset_position": int(manifest.get("dataset_position", completed_step * int(source_config.get("batch_size", 1)))),
         }
@@ -590,7 +590,7 @@ class LocalJobQueue:
             if state == "COMPLETED":
                 references = sanitized.get("artifact_refs") if isinstance(sanitized, Mapping) else None
                 if not isinstance(references, list) or not references or not all(
-                    isinstance(item, str) and item.startswith("hf://buckets/BluStatic/BLACKHOLE/LAB/")
+                    isinstance(item, str) and item.startswith("hf://buckets/STATICAI/BLACKHOLE/LAB/")
                     for item in references
                 ):
                     raise ValueError("COMPLETED requires LAB bucket artifact_refs")

@@ -13,8 +13,8 @@ from .types import StorageHealth
 
 _ENVIRONMENTS = {"production", "development", "test"}
 _VOLUMES = {
-    "/data": "BluStatic/BLACKHOLE/DATA",
-    "/lab": "BluStatic/BLACKHOLE/LAB",
+    "/data": "STATICAI/BLACKHOLE/DATA",
+    "/lab": "STATICAI/BLACKHOLE/LAB",
 }
 
 

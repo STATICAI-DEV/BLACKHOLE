@@ -12,9 +12,9 @@ from typing import Any, Protocol
 from blackhole.atomic import atomic_write_json, atomic_write_text
 from blackhole.redaction import redact_text
 
-SPACE_ID = "BluStatic/BLACKHOLE"
-DATA_BUCKET = "BluStatic/BLACKHOLE/DATA"
-LAB_BUCKET = "BluStatic/BLACKHOLE/LAB"
+SPACE_ID = "STATICAI/BLACKHOLE"
+DATA_BUCKET = "STATICAI/BLACKHOLE/DATA"
+LAB_BUCKET = "STATICAI/BLACKHOLE/LAB"
 
 
 def _configured_volume_records(info: object, runtime: object) -> list[dict[str, Any]]:

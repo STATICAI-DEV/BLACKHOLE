@@ -22,7 +22,7 @@ class FakeClient:
         if self.fail_catalog:
             raise RuntimeError("authorization hf_secretvalue123456 failed")
         return {
-            "bucket": "BluStatic/BLACKHOLE/DATA",
+            "bucket": "STATICAI/BLACKHOLE/DATA",
             "catalog": "manifests/dataset_catalog_v2.json",
             "primary_language": "en",
             "english_train_pairs": 5240,
@@ -41,7 +41,7 @@ def test_configured_volume_records_prefer_space_info_runtime() -> None:
 
     volume = SimpleNamespace(
         type="bucket",
-        source="BluStatic/BLACKHOLE",
+        source="STATICAI/BLACKHOLE",
         path="DATA",
         mount_path="/data",
         read_only=False,
@@ -52,7 +52,7 @@ def test_configured_volume_records_prefer_space_info_runtime() -> None:
     assert _configured_volume_records(info, runtime) == [
         {
             "type": "bucket",
-            "source": "BluStatic/BLACKHOLE",
+            "source": "STATICAI/BLACKHOLE",
             "path": "DATA",
             "mount_path": "/data",
             "read_only": False,

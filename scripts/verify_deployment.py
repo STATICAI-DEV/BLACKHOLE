@@ -8,8 +8,8 @@ import uuid
 from datetime import UTC, datetime
 from blackhole.redaction import redact_text
 
-SPACE_ID = "BluStatic/BLACKHOLE"
-STORAGE_BUCKET = "BluStatic/BLACKHOLE"
+SPACE_ID = "STATICAI/BLACKHOLE"
+STORAGE_BUCKET = "STATICAI/BLACKHOLE"
 LAB_SOURCE = f"{STORAGE_BUCKET}/LAB"
 
 
@@ -52,8 +52,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     api = HfApi(token=True)
     identity = api.whoami(token=True)
-    if str(identity.get("name") or "").casefold() != "blustatic".casefold():
-        print("BLOCKED_AUTH: authenticated Hugging Face user is not BluStatic")
+    if str(identity.get("name") or "").casefold() != "staticai".casefold():
+        print("BLOCKED_AUTH: authenticated Hugging Face user is not STATICAI")
         return 2
     info = api.space_info(SPACE_ID, token=True)
     runtime = api.get_space_runtime(SPACE_ID, token=True)

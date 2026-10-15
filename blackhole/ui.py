@@ -540,7 +540,7 @@ def build_app(
                 split_input = gr.Textbox(label="Split", value="train")
             artifact_uri_input = gr.Textbox(
                 label="DATA bucket JSONL artifact URI (required for LOCAL)",
-                placeholder="hf://buckets/BluStatic/BLACKHOLE/DATA/path/file.jsonl",
+                placeholder="hf://buckets/STATICAI/BLACKHOLE/DATA/path/file.jsonl",
             )
             with gr.Row():
                 license_input = gr.Textbox(label="Exact license")

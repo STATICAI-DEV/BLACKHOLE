@@ -16,7 +16,7 @@ _TRAINING_ROLES = {"pretraining", "chat", "instruction"}
 _HELD_OUT_ROLES = {"evaluation", "benchmark", "test"}
 _AMBIGUOUS_LICENSES = {"", "unknown", "unspecified", "other", "none", "n/a", "tbd"}
 _TEXT_FIELDS = ("dataset_id", "revision", "role", "split", "language")
-_LOCAL_ARTIFACT_PREFIX = "hf://buckets/BluStatic/BLACKHOLE/DATA/"
+_LOCAL_ARTIFACT_PREFIX = "hf://buckets/STATICAI/BLACKHOLE/DATA/"
 
 
 class DatasetRegistry:

@@ -8,9 +8,9 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Iterable
 
-OWNER = "BluStatic"
-SPACE_ID = "BluStatic/BLACKHOLE"
-STORAGE_BUCKET = "BluStatic/BLACKHOLE"
+OWNER = "STATICAI"
+SPACE_ID = "STATICAI/BLACKHOLE"
+STORAGE_BUCKET = "STATICAI/BLACKHOLE"
 
 
 class BlockedAuth(RuntimeError):
@@ -56,7 +56,7 @@ def make_plan(
     if authenticated_user.casefold() != OWNER.casefold():
         raise BlockedAuth(f"BLOCKED_AUTH: expected authenticated Hugging Face user {OWNER}")
     if space is not None and space.get("private") is not True:
-        raise ProvisioningConflict("Existing BluStatic/BLACKHOLE Space must be private")
+        raise ProvisioningConflict("Existing STATICAI/BLACKHOLE Space must be private")
     if STORAGE_BUCKET in bucket_states and bucket_states[STORAGE_BUCKET] is not True:
         raise ProvisioningConflict(f"Existing bucket must be private: {STORAGE_BUCKET}")
     desired = (

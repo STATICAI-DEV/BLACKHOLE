@@ -70,11 +70,11 @@ def test_environment_is_closed_enum_and_production_requires_mount_markers(tmp_pa
     settings = LabSettings("production", data, lab)
     with pytest.raises(BlockedStorageError, match="marker"):
         settings.ensure_storage()
-    (data / ".blackhole-volume.json").write_text(json.dumps({"schema_version": "blackhole.volume.v1", "mount_path": "/data", "bucket": "BluStatic/BLACKHOLE/DATA"}))
-    (lab / ".blackhole-volume.json").write_text(json.dumps({"schema_version": "blackhole.volume.v1", "mount_path": "/wrong", "bucket": "BluStatic/BLACKHOLE/LAB"}))
+    (data / ".blackhole-volume.json").write_text(json.dumps({"schema_version": "blackhole.volume.v1", "mount_path": "/data", "bucket": "STATICAI/BLACKHOLE/DATA"}))
+    (lab / ".blackhole-volume.json").write_text(json.dumps({"schema_version": "blackhole.volume.v1", "mount_path": "/wrong", "bucket": "STATICAI/BLACKHOLE/LAB"}))
     with pytest.raises(BlockedStorageError, match="identity"):
         settings.ensure_storage()
-    (lab / ".blackhole-volume.json").write_text(json.dumps({"schema_version": "blackhole.volume.v1", "mount_path": "/lab", "bucket": "BluStatic/BLACKHOLE/LAB"}))
+    (lab / ".blackhole-volume.json").write_text(json.dumps({"schema_version": "blackhole.volume.v1", "mount_path": "/lab", "bucket": "STATICAI/BLACKHOLE/LAB"}))
     assert settings.ensure_storage().ready is True
 
 

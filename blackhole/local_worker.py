@@ -23,8 +23,8 @@ from .metrics import MetricsStore
 from .runs import RunStore
 from .training import TrainingController
 
-DATA_PREFIX = "hf://buckets/BluStatic/BLACKHOLE/DATA/"
-LAB_PREFIX = "hf://buckets/BluStatic/BLACKHOLE/LAB/"
+DATA_PREFIX = "hf://buckets/STATICAI/BLACKHOLE/DATA/"
+LAB_PREFIX = "hf://buckets/STATICAI/BLACKHOLE/LAB/"
 
 
 class BlockedJob(RuntimeError):

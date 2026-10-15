@@ -21,7 +21,7 @@ from blackhole.adapters.registry import AdapterRegistry, build_default_registry
 from blackhole.local_jobs import sanitize_remote_value
 from blackhole.local_worker import LocalWorker
 
-SPACE_ID = "BluStatic/BLACKHOLE"
+SPACE_ID = "STATICAI/BLACKHOLE"
 
 
 def default_local_root() -> Path:

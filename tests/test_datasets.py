@@ -76,7 +76,7 @@ def test_optional_local_worker_artifact_uri_is_strictly_allowlisted(tmp_path: Pa
 
     registry = DatasetRegistry(tmp_path)
     ready = registry.register(
-        _manifest(artifact_uri="hf://buckets/BluStatic/BLACKHOLE/DATA/training/oasst2.jsonl")
+        _manifest(artifact_uri="hf://buckets/STATICAI/BLACKHOLE/DATA/training/oasst2.jsonl")
     )
     blocked = registry.register(
         _manifest(dataset_id="other/data", artifact_uri="https://example.com/arbitrary.py")
@@ -94,8 +94,8 @@ def test_optional_validation_artifact_is_hash_bound_and_allowlisted(tmp_path: Pa
     registry = DatasetRegistry(tmp_path)
     ready = registry.register(
         _manifest(
-            artifact_uri="hf://buckets/BluStatic/BLACKHOLE/DATA/train.jsonl",
-            validation_artifact_uri="hf://buckets/BluStatic/BLACKHOLE/DATA/validation.jsonl",
+            artifact_uri="hf://buckets/STATICAI/BLACKHOLE/DATA/train.jsonl",
+            validation_artifact_uri="hf://buckets/STATICAI/BLACKHOLE/DATA/validation.jsonl",
             validation_content_sha256="b" * 64,
         )
     )
