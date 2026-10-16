@@ -114,7 +114,7 @@ def test_default_registry_exposes_audited_static_0t_adapter() -> None:
     from blackhole.adapters.registry import build_default_registry
 
     registry = build_default_registry(device="cpu")
-    assert registry.names() == ["static-0t"]
+    assert registry.names() == ["STATIC-K", "STATIC-T", "STATIC-X", "static-0t"]
     assert registry.get("static-0t").inspect()["source_archive_sha256"] == (
         "fbc24587333b2f0303dd7e8ee6ada0fb7fb64760e732b34e5035fcbf5bb9e331"
     )

@@ -43,7 +43,10 @@ class AdapterRegistry:
 
 def build_default_registry(*, device: str) -> AdapterRegistry:
     from .static_0t import Static0TAdapter
+    from .ternary_cohort import StaticTernaryAdapter
 
     registry = AdapterRegistry()
     registry.register(Static0TAdapter(device=device))
+    for name in ("STATIC-X", "STATIC-T", "STATIC-K"):
+        registry.register(StaticTernaryAdapter(name=name, device=device))
     return registry
