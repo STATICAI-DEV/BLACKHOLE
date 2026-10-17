@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import math
 import re
 import secrets
 import threading
@@ -31,6 +32,7 @@ _ALLOWED_CONFIG = {
     "seed",
     "train_steps",
     "batch_size",
+    "gradient_accumulation_steps",
     "context_length",
     "learning_rate",
     "checkpoint_interval",
@@ -43,6 +45,11 @@ _ALLOWED_CONFIG = {
     "shuffle_seed",
     "training_recipe_version",
     "validation_max_rows",
+    "weight_decay",
+    "warmup_steps",
+    "min_lr_ratio",
+    "reset_optimizer_on_resume",
+    "dpo_beta",
 }
 _COHORT_CONFIG = {
     "execution_target",
@@ -61,6 +68,11 @@ _COHORT_CONFIG = {
     "dataset_epoch",
     "training_recipe_version",
     "validation_max_rows",
+    "weight_decay",
+    "warmup_steps",
+    "min_lr_ratio",
+    "reset_optimizer_on_resume",
+    "dpo_beta",
 }
 _EVALUATION_CONFIG = {
     "execution_target",
@@ -73,6 +85,14 @@ _EVALUATION_CONFIG = {
     "temperature",
     "top_k",
     "max_new_tokens",
+}
+_TRAINING_RECIPES = {
+    "causal-pretrain-v1",
+    "reasoning-mid-v1",
+    "software-engineering-sft-v1",
+    "instruction-sft-v1",
+    "judgment-sft-v1",
+    "preference-dpo-v1",
 }
 _TERMINAL = {"BLOCKED", "FAILED", "COMPLETED", "CANCELLED"}
 _TRANSITIONS = {
@@ -141,15 +161,18 @@ class LocalJobQueue:
         if not isinstance(steps, int) or isinstance(steps, bool) or not 1 <= steps <= 10_000_000:
             raise ValueError("train_steps must be an integer between 1 and 10000000")
         batch_size = record.get("batch_size", 1)
+        accumulation = record.get("gradient_accumulation_steps", 1)
         if not isinstance(batch_size, int) or isinstance(batch_size, bool) or not 1 <= batch_size <= 65_536:
             raise ValueError("batch_size must be an integer between 1 and 65536")
+        if not isinstance(accumulation, int) or isinstance(accumulation, bool) or not 1 <= accumulation <= 65_536:
+            raise ValueError("gradient_accumulation_steps must be an integer between 1 and 65536")
         dataset = self.datasets.verify_persisted(dataset_manifest)
         rows = int(dataset.get("rows") or 0)
         dataset_position = record.get("dataset_position", 0)
         dataset_epoch = record.get("dataset_epoch", 0)
         shuffle_seed = record.get("shuffle_seed", record.get("seed", 1234))
         validation_max_rows = record.get("validation_max_rows", 256)
-        recipe = record.get("training_recipe_version", "assistant-response-v2")
+        recipe = record.get("training_recipe_version", "causal-pretrain-v1")
         if not isinstance(dataset_position, int) or isinstance(dataset_position, bool) or dataset_position < 0:
             raise ValueError("dataset_position must be a non-negative integer")
         if not isinstance(dataset_epoch, int) or isinstance(dataset_epoch, bool) or dataset_epoch < 0:
@@ -162,9 +185,9 @@ class LocalJobQueue:
             or not 1 <= validation_max_rows <= 100_000
         ):
             raise ValueError("validation_max_rows must be an integer between 1 and 100000")
-        if recipe != "assistant-response-v2":
-            raise ValueError("training_recipe_version must be assistant-response-v2")
-        required = steps * batch_size
+        if recipe not in _TRAINING_RECIPES:
+            raise ValueError("unsupported training_recipe_version")
+        required = steps * batch_size * accumulation
         if rows and dataset_position + required > rows:
             raise ValueError(
                 f"training requires {required} examples from position {dataset_position}, "
@@ -173,8 +196,43 @@ class LocalJobQueue:
         record["dataset_position"] = dataset_position
         record["dataset_epoch"] = dataset_epoch
         record["shuffle_seed"] = shuffle_seed
+        record["gradient_accumulation_steps"] = accumulation
+        weight_decay = record.get("weight_decay", 0.1)
+        warmup_steps = record.get("warmup_steps", 100)
+        min_lr_ratio = record.get("min_lr_ratio", 0.1)
+        reset_optimizer = record.get("reset_optimizer_on_resume", False)
+        dpo_beta = record.get("dpo_beta", 0.1)
+        if (
+            not isinstance(weight_decay, (int, float))
+            or isinstance(weight_decay, bool)
+            or not 0 <= float(weight_decay) <= 1
+        ):
+            raise ValueError("weight_decay must be between 0 and 1")
+        if not isinstance(warmup_steps, int) or isinstance(warmup_steps, bool) or warmup_steps < 0:
+            raise ValueError("warmup_steps must be a non-negative integer")
+        if (
+            not isinstance(min_lr_ratio, (int, float))
+            or isinstance(min_lr_ratio, bool)
+            or not 0 <= float(min_lr_ratio) <= 1
+        ):
+            raise ValueError("min_lr_ratio must be between 0 and 1")
+        if not isinstance(reset_optimizer, bool):
+            raise ValueError("reset_optimizer_on_resume must be boolean")
+        if (
+            not isinstance(dpo_beta, (int, float))
+            or isinstance(dpo_beta, bool)
+            or not math.isfinite(float(dpo_beta))
+            or not 0 < float(dpo_beta) <= 2
+        ):
+            raise ValueError("dpo_beta must be a positive finite number no greater than 2")
         record["validation_max_rows"] = validation_max_rows
         record["training_recipe_version"] = recipe
+        record["weight_decay"] = float(weight_decay)
+        record["warmup_steps"] = warmup_steps
+        record["min_lr_ratio"] = float(min_lr_ratio)
+        record["reset_optimizer_on_resume"] = reset_optimizer
+        if recipe == "preference-dpo-v1" or "dpo_beta" in record:
+            record["dpo_beta"] = float(dpo_beta)
 
         job_id = "local-" + uuid.uuid4().hex
         now = _utc_now()
@@ -262,6 +320,11 @@ class LocalJobQueue:
                 }
             )
         record["members"] = normalized_members
+        if any(member["model_adapter"] in {"STATIC-X", "STATIC-T", "STATIC-K"} for member in normalized_members):
+            raise ValueError(
+                "foundation-model cohort training is disabled on the single local GPU; "
+                "train STATIC-T, STATIC-X and STATIC-K sequentially"
+            )
         steps = record.get("train_steps")
         micro_batch = record.get("batch_size", 1)
         accumulation = record.get("gradient_accumulation_steps", 1)
@@ -288,7 +351,7 @@ class LocalJobQueue:
             raise ValueError("shuffle_seed must be a non-negative integer")
         dataset_epoch = record.get("dataset_epoch", 0)
         validation_max_rows = record.get("validation_max_rows", 256)
-        recipe = record.get("training_recipe_version", "assistant-response-v2")
+        recipe = record.get("training_recipe_version", "causal-pretrain-v1")
         if not isinstance(dataset_epoch, int) or isinstance(dataset_epoch, bool) or dataset_epoch < 0:
             raise ValueError("dataset_epoch must be a non-negative integer")
         if (
@@ -297,13 +360,47 @@ class LocalJobQueue:
             or not 1 <= validation_max_rows <= 100_000
         ):
             raise ValueError("validation_max_rows must be an integer between 1 and 100000")
-        if recipe != "assistant-response-v2":
-            raise ValueError("training_recipe_version must be assistant-response-v2")
+        if recipe not in _TRAINING_RECIPES:
+            raise ValueError("unsupported training_recipe_version")
         record["shuffle_seed"] = shuffle_seed
         record["dataset_position"] = start
         record["dataset_epoch"] = dataset_epoch
+        weight_decay = record.get("weight_decay", 0.1)
+        warmup_steps = record.get("warmup_steps", 100)
+        min_lr_ratio = record.get("min_lr_ratio", 0.1)
+        reset_optimizer = record.get("reset_optimizer_on_resume", False)
+        dpo_beta = record.get("dpo_beta", 0.1)
+        if (
+            not isinstance(weight_decay, (int, float))
+            or isinstance(weight_decay, bool)
+            or not 0 <= float(weight_decay) <= 1
+        ):
+            raise ValueError("weight_decay must be between 0 and 1")
+        if not isinstance(warmup_steps, int) or isinstance(warmup_steps, bool) or warmup_steps < 0:
+            raise ValueError("warmup_steps must be a non-negative integer")
+        if (
+            not isinstance(min_lr_ratio, (int, float))
+            or isinstance(min_lr_ratio, bool)
+            or not 0 <= float(min_lr_ratio) <= 1
+        ):
+            raise ValueError("min_lr_ratio must be between 0 and 1")
+        if not isinstance(reset_optimizer, bool):
+            raise ValueError("reset_optimizer_on_resume must be boolean")
+        if (
+            not isinstance(dpo_beta, (int, float))
+            or isinstance(dpo_beta, bool)
+            or not math.isfinite(float(dpo_beta))
+            or not 0 < float(dpo_beta) <= 2
+        ):
+            raise ValueError("dpo_beta must be a positive finite number no greater than 2")
         record["validation_max_rows"] = validation_max_rows
         record["training_recipe_version"] = recipe
+        record["weight_decay"] = float(weight_decay)
+        record["warmup_steps"] = warmup_steps
+        record["min_lr_ratio"] = float(min_lr_ratio)
+        record["reset_optimizer_on_resume"] = reset_optimizer
+        if recipe == "preference-dpo-v1" or "dpo_beta" in record:
+            record["dpo_beta"] = float(dpo_beta)
         record["gradient_accumulation_steps"] = accumulation
         job_id = "local-" + uuid.uuid4().hex
         now = _utc_now()
@@ -469,7 +566,11 @@ class LocalJobQueue:
             "dataset_epoch": int(source_config.get("dataset_epoch", 0)),
             "shuffle_seed": int(source_config.get("shuffle_seed", source_config.get("seed", 1234))),
             "validation_max_rows": int(source_config.get("validation_max_rows", 256)),
-            "training_recipe_version": str(source_config.get("training_recipe_version", "assistant-response-v2")),
+            "training_recipe_version": str(source_config.get("training_recipe_version", "causal-pretrain-v1")),
+            "weight_decay": float(source_config.get("weight_decay", 0.1)),
+            "warmup_steps": int(source_config.get("warmup_steps", 100)),
+            "min_lr_ratio": float(source_config.get("min_lr_ratio", 0.1)),
+            "reset_optimizer_on_resume": False,
         }
         return self.enqueue(record, dataset_manifest, owner_authorized=True)
 

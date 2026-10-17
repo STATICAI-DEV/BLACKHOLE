@@ -12,7 +12,7 @@ from .atomic import atomic_write_json
 from .config import require_storage_root
 
 _SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
-_TRAINING_ROLES = {"pretraining", "chat", "instruction"}
+_TRAINING_ROLES = {"pretraining", "reasoning", "software_engineering", "chat", "instruction", "judgment", "preference"}
 _HELD_OUT_ROLES = {"evaluation", "benchmark", "test"}
 _AMBIGUOUS_LICENSES = {"", "unknown", "unspecified", "other", "none", "n/a", "tbd"}
 _TEXT_FIELDS = ("dataset_id", "revision", "role", "split", "language")

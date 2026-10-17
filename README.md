@@ -39,7 +39,26 @@ These lines describe the validated source deployment, not the privacy state of t
 
 The acceptance run used three disposable experimental models (T/X/K). Their weights and runtime artifacts are **not included** in this repository.
 
-## V1.1 English training upgrade
+## Foundation generation V2
+
+BLACKHOLE can train fresh STATIC foundation models from random weights using a staged curriculum rather than treating instruction tuning as language pretraining.
+
+The local foundation profile is a 147,284,736-parameter decoder-only Transformer with ternary {-1,0,+1} projection weights, a 32,000-piece SentencePiece BPE vocabulary, rotary positional encoding, tied embeddings, gradient checkpointing, and a 2,048-token training context. Adapters are instantiated lazily so a local worker loads only the model it is actually training.
+
+The curriculum is deliberately separated into six training objectives:
+
+1. `causal-pretrain-v1`: English educational text, source code, and mathematical text.
+2. `reasoning-mid-v1`: difficult English reasoning traces across math, code, and science.
+3. `software-engineering-sft-v1`: real repository issue-to-patch tasks.
+4. `instruction-sft-v1`: English general instructions plus code instructions.
+5. `judgment-sft-v1`: response comparison, critique, error repair, and principle-based judgment.
+6. `preference-dpo-v1`: direct preference optimization against a frozen stage-start reference model using HelpSteer reviewer preferences, LMArena human choices, and OpenR1 verified correct-vs-incorrect reasoning pairs.
+
+Natural-language data is English-only. Programming languages are retained as code and are not treated as spoken-language contamination. Multilingual chat subsets are excluded.
+
+The current local RTX 5050 profile is an engineering and training profile, not a claim of frontier-scale capability. The same curriculum design is intended to scale to larger model profiles and distributed compute. BLACKHOLE never silently switches to cloud GPU execution.
+
+## Legacy V1.1 English SFT path
 
 The current build adds an English conversational SFT path while preserving existing checkpoints:
 

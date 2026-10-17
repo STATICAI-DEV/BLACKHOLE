@@ -327,8 +327,8 @@ def build_app(
                 )
             with gr.Row():
                 seed = gr.Number(value=7, precision=0, label="Seed")
-                batch_size = gr.Number(value=2, minimum=1, precision=0, label="Physical batch size")
-                context_length = gr.Number(value=256, minimum=8, precision=0, label="Context length")
+                batch_size = gr.Number(value=1, minimum=1, precision=0, label="Physical batch size")
+                context_length = gr.Number(value=2048, minimum=8, precision=0, label="Context length")
                 learning_rate = gr.Number(value=0.0003, minimum=0, label="Learning rate")
             with gr.Row():
                 train_steps = gr.Number(value=500, minimum=1, precision=0, label="Optimizer steps")
@@ -338,14 +338,15 @@ def build_app(
             owner_authorized = gr.Checkbox(label="I explicitly authorize this training run", value=False)
 
             gr.Markdown(
-                "### Synchronized cohort training\n"
-                "One LOCAL worker, one CUDA process, one deterministic shuffled dataset stream, "
-                "three independent models. Physical batch × accumulation = effective batch."
+                "### Legacy synchronized cohort training\n"
+                "The 147M STATIC foundation profile is intentionally trained sequentially on the local GPU. "
+                "Synchronized T/X/K cohort execution is disabled for foundation models because the combined "
+                "training footprint exceeds the RTX 5050 VRAM budget."
             )
             with gr.Row():
                 cohort_id = gr.Textbox(label="Cohort ID", value="batch2")
                 gradient_accumulation_steps = gr.Number(
-                    value=4, minimum=1, precision=0, label="Gradient accumulation"
+                    value=8, minimum=1, precision=0, label="Gradient accumulation"
                 )
                 shuffle_seed = gr.Number(value=1234, minimum=0, precision=0, label="Shuffle seed")
                 dataset_position = gr.Number(
@@ -360,8 +361,8 @@ def build_app(
                 cohort_seed_k = gr.Number(value=2402, minimum=0, precision=0, label="K seed")
             cohort_button = gr.Button(
                 "Queue synchronized T / X / K cohort",
-                variant="primary",
-                interactive=can_train,
+                variant="secondary",
+                interactive=False,
             )
             gr.Markdown(
                 "**Cloud GPU lock:** selecting CLOUD is blocked unless the user separately authorizes cloud compute "
@@ -394,7 +395,7 @@ def build_app(
                 interactive=bool(checkpoint_roots),
             )
             start_button.click(
-                lambda target, name, adapter, dataset_id, selected_seed, steps, selected_batch_size, selected_context, selected_learning_rate, selected_checkpoint_interval, selected_evaluation_interval, authorized, cloud_authorized, cloud_phrase: dispatch_training(
+                lambda target, name, adapter, dataset_id, selected_seed, steps, selected_batch_size, accumulation, selected_context, selected_learning_rate, selected_checkpoint_interval, selected_evaluation_interval, authorized, cloud_authorized, cloud_phrase: dispatch_training(
                     controller,
                     local_jobs,
                     str(target),
@@ -404,17 +405,26 @@ def build_app(
                         "seed": int(selected_seed),
                         "train_steps": int(steps),
                         "batch_size": int(selected_batch_size),
+                        "gradient_accumulation_steps": int(accumulation),
                         "context_length": int(selected_context),
                         "learning_rate": float(selected_learning_rate),
                         "checkpoint_interval": int(selected_checkpoint_interval),
                         "evaluation_interval": int(selected_evaluation_interval),
+                        "training_recipe_version": str(
+                            approved_by_id.get(str(dataset_id), {}).get("training_recipe_version")
+                            or "causal-pretrain-v1"
+                        ),
+                        "weight_decay": 0.1,
+                        "warmup_steps": min(100, max(int(steps) // 20, 0)),
+                        "min_lr_ratio": 0.1,
+                        "reset_optimizer_on_resume": False,
                     },
                     approved_by_id.get(str(dataset_id), {}),
                     owner_authorized=bool(authorized),
                     cloud_gpu_authorized=bool(cloud_authorized),
                     cloud_gpu_authorization_text=str(cloud_phrase or ""),
                 ),
-                inputs=[execution_target, run_name, adapter_choice, dataset_choice, seed, train_steps, batch_size, context_length, learning_rate, checkpoint_interval, evaluation_interval, owner_authorized, cloud_gpu_authorized, cloud_gpu_authorization_text], outputs=training_status,
+                inputs=[execution_target, run_name, adapter_choice, dataset_choice, seed, train_steps, batch_size, gradient_accumulation_steps, context_length, learning_rate, checkpoint_interval, evaluation_interval, owner_authorized, cloud_gpu_authorized, cloud_gpu_authorization_text], outputs=training_status,
             )
             cohort_button.click(
                 lambda cohort, adapter, dataset_id, steps, physical_batch, accumulation, selected_context, selected_learning_rate, selected_checkpoint_interval, selected_evaluation_interval, selected_shuffle_seed, cursor, seed_t, seed_x, seed_k, authorized: dispatch_cohort_training(
@@ -425,19 +435,19 @@ def build_app(
                             {
                                 "member_id": "T",
                                 "run_id": f"{cohort}-t",
-                                "model_adapter": str(adapter),
+                                "model_adapter": "STATIC-T",
                                 "seed": int(seed_t),
                             },
                             {
                                 "member_id": "X",
                                 "run_id": f"{cohort}-x",
-                                "model_adapter": str(adapter),
+                                "model_adapter": "STATIC-X",
                                 "seed": int(seed_x),
                             },
                             {
                                 "member_id": "K",
                                 "run_id": f"{cohort}-k",
-                                "model_adapter": str(adapter),
+                                "model_adapter": "STATIC-K",
                                 "seed": int(seed_k),
                             },
                         ],
@@ -450,6 +460,14 @@ def build_app(
                         "evaluation_interval": int(selected_evaluation_interval),
                         "shuffle_seed": int(selected_shuffle_seed),
                         "dataset_position": int(cursor),
+                        "training_recipe_version": str(
+                            approved_by_id.get(str(dataset_id), {}).get("training_recipe_version")
+                            or "causal-pretrain-v1"
+                        ),
+                        "weight_decay": 0.1,
+                        "warmup_steps": min(100, max(int(steps) // 20, 0)),
+                        "min_lr_ratio": 0.1,
+                        "reset_optimizer_on_resume": False,
                     },
                     approved_by_id.get(str(dataset_id), {}),
                     owner_authorized=bool(authorized),
@@ -544,7 +562,21 @@ def build_app(
             )
             with gr.Row():
                 license_input = gr.Textbox(label="Exact license")
-                role_input = gr.Dropdown(["pretraining", "chat", "instruction", "evaluation", "benchmark"], value="chat", label="Role")
+                role_input = gr.Dropdown(
+                    [
+                        "pretraining",
+                        "reasoning",
+                        "software_engineering",
+                        "chat",
+                        "instruction",
+                        "judgment",
+                        "preference",
+                        "evaluation",
+                        "benchmark",
+                    ],
+                    value="chat",
+                    label="Role",
+                )
                 language_input = gr.Textbox(value="en", label="Language")
                 rows_input = gr.Number(value=0, minimum=0, precision=0, label="Rows")
             content_hash_input = gr.Textbox(label="Content SHA-256")

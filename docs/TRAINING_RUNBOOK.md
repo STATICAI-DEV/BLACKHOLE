@@ -59,3 +59,85 @@ The approved V1 split is 4,000 training rows, 500 validation rows and 500 held-o
 ### Arena v2
 
 `english-heldout-v2` contains 50 deterministic English smoke-test prompts across vocabulary, question answering, instruction following, basic reasoning and conversation. It records per-prompt pass/fail plus overall and category scores. Arena scores are evaluation evidence, not a substitute for inspecting generated text.
+
+
+## Foundation generation V2
+
+Fresh STATIC-X, STATIC-T and STATIC-K foundation models use `STATIC-FOUNDATION-TERNARY-v1`, not the legacy 256-byte STATIC-0T training path.
+
+### Local model profile
+
+- decoder-only causal Transformer
+- 147,284,736 parameters
+- 122,683,392 ternary projection parameters
+- 32,000-piece SentencePiece BPE vocabulary
+- 16 layers, width 768, 12 attention heads, FFN width 2304
+- 2,048-token context
+- RoPE positional encoding
+- RMSNorm and gated feed-forward blocks
+- gradient checkpointing
+- AdamW with stage-specific warmup/decay
+- lazy adapter construction so only the requested model occupies CUDA memory
+
+A full-context causal smoke test must begin near random-language-model cross entropy (approximately ln(32000)) before a foundation run is accepted. The validated initialization produces loss near 10.6 and the local RTX 5050 training probe fits comfortably.
+
+### Six-stage curriculum
+
+1. **Foundation pretraining** (`causal-pretrain-v1`)
+   - FineWeb-Edu English educational text
+   - curated English/code material
+   - FineMath educational mathematics
+   - next-token causal language-model objective
+
+2. **Reasoning mid-training** (`reasoning-mid-v1`)
+   - English-filtered OpenThoughts-114k reasoning traces covering mathematics, science, code and puzzles
+   - complete conversation supervision
+   - long examples that do not fit the model context are rejected, never truncated into malformed reasoning
+
+3. **Software engineering SFT** (`software-engineering-sft-v1`)
+   - SWE-smith Python repository issue-to-patch tasks
+   - SWE-Gym real repository repair tasks
+   - English issue descriptions, source-code patches retained as code
+
+4. **Instruction SFT** (`instruction-sft-v1`)
+   - English general instruction following
+   - English CodeAlpaca code-generation and programming instructions
+   - assistant-response supervision
+
+5. **Judgment SFT** (`judgment-sft-v1`)
+   - HelpSteer3 human preference reasoning
+   - critique/feedback
+   - edited improved responses
+   - explicit principles such as correctness, relevance, clarity and factual accuracy
+
+6. **Preference optimization** (`preference-dpo-v1`)
+   - HelpSteer3 reviewer-chosen/rejected response pairs
+   - LMArena single-turn non-tie human preference pairs
+   - OpenR1 Math correct-vs-incorrect reasoning pairs using machine verification
+   - frozen copy of the stage-5 model is the DPO reference policy
+   - DPO beta defaults to 0.1
+   - local profile uses physical batch 1 with gradient accumulation 8
+
+Each stage starts from the previous model weights but creates a fresh optimizer. Stage provenance and hashes are retained separately.
+
+### Language policy
+
+Natural-language training is English-only. Rows from multilingual human-language subsets are excluded. Programming languages such as Python, JavaScript, SQL, C/C++ and shell are code and may be retained.
+
+### Scale warning
+
+This local profile exists to train and validate the STATIC architecture on the RTX 5050. It is not represented as frontier-scale. Market-leading software-engineering or reasoning capability requires substantially larger model capacity, context, token budgets and compute; BLACKHOLE's staged dataset/recipe contracts are designed so larger profiles can reuse the same curriculum without rewriting the training logic.
+
+
+### Held-out capability benchmarks
+
+- Judgment: RewardBench 2, 1,776 English preference/judge cases. It is evaluation-only and is never registered as a training stage.
+- Software engineering: SWE-bench Verified, 500 human-validated repository issues. Benchmark tasks and expected patches/tests are stored separately. Evaluation must execute repository tests; text similarity is not a valid score.
+- Benchmark files are SHA-256 checked at publication and marked `training_eligible: false`.
+
+
+### SWE-smith repair semantics
+
+The upstream SWE-smith `patch` field is the bug-injection diff, not the repair. BLACKHOLE never trains directly on that field. During preparation, the unified diff is deterministically inverted and the inverse is used as the assistant repair target. Binary patches are rejected. SWE-Gym follows SWE-bench semantics and its forward reference patch is retained unchanged.
+
+This distinction is regression-tested because reversing it would train a coding model to introduce the reported bug instead of fixing it.

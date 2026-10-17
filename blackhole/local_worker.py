@@ -19,6 +19,15 @@ from .config import LabSettings
 from .datasets import DatasetRegistry
 from .evaluation import EvaluationStore
 from .local_jobs import JOB_SCHEMA, sanitize_remote_value
+
+FOUNDATION_TRAINING_RECIPES = {
+    "causal-pretrain-v1",
+    "reasoning-mid-v1",
+    "software-engineering-sft-v1",
+    "instruction-sft-v1",
+    "judgment-sft-v1",
+    "preference-dpo-v1",
+}
 from .metrics import MetricsStore
 from .runs import RunStore
 from .training import TrainingController
@@ -190,7 +199,13 @@ class LocalWorker:
             resume_uri = config.get("resume_checkpoint_uri")
             if resume_uri:
                 resume_root = self._download_checkpoint(str(resume_uri), str(config["model_adapter"]))
-                adapter.load(resume_root)
+                if config.get("reset_optimizer_on_resume") is True:
+                    try:
+                        adapter.load(resume_root, weights_only=True)
+                    except TypeError as exc:
+                        raise BlockedJob("BLOCKED_CHECKPOINT", "adapter does not support weights-only stage transition") from exc
+                else:
+                    adapter.load(resume_root)
 
             def should_cancel() -> bool:
                 try:
@@ -876,7 +891,11 @@ class LocalWorker:
         checkpoint_interval = int(config.get("checkpoint_interval", 50))
         evaluation_interval = int(config.get("evaluation_interval", total_steps))
         learning_rate = float(config.get("learning_rate", 0.0003))
-        context_length = int(config.get("context_length", 256))
+        context_length = int(config.get("context_length", 2048))
+        training_recipe = str(config.get("training_recipe_version", "causal-pretrain-v1"))
+        weight_decay = float(config.get("weight_decay", 0.1))
+        warmup_steps = int(config.get("warmup_steps", 100))
+        min_lr_ratio = float(config.get("min_lr_ratio", 0.1))
 
         rows = [
             json.loads(line)
@@ -924,6 +943,11 @@ class LocalWorker:
                         "seed": seed,
                         "learning_rate": learning_rate,
                         "context_length": context_length,
+                        "train_steps": total_steps,
+                        "training_recipe_version": training_recipe,
+                        "weight_decay": weight_decay,
+                        "warmup_steps": warmup_steps,
+                        "min_lr_ratio": min_lr_ratio,
                     }
                 )
             for required_method in ("begin_accumulation", "accumulate_step", "finish_accumulation"):
@@ -949,6 +973,10 @@ class LocalWorker:
                 "effective_batch_size": effective_batch,
                 "context_length": context_length,
                 "learning_rate": learning_rate,
+                "weight_decay": weight_decay,
+                "warmup_steps": warmup_steps,
+                "min_lr_ratio": min_lr_ratio,
+                "training_recipe_version": training_recipe,
                 "checkpoint_interval": checkpoint_interval,
                 "evaluation_interval": evaluation_interval,
                 "shuffle_seed": shuffle_seed,
@@ -1187,18 +1215,20 @@ class LocalWorker:
         step_offset = int(config.get("resume_step", 0))
         total_steps = int(config["train_steps"])
         batch_size = int(config.get("batch_size", 1))
+        accumulation = int(config.get("gradient_accumulation_steps", 1))
+        effective_batch = batch_size * accumulation
         checkpoint_interval = int(config.get("checkpoint_interval", 50))
         evaluation_interval = int(config.get("evaluation_interval", total_steps))
         dataset_position = int(config.get("dataset_position", 0))
         dataset_epoch = int(config.get("dataset_epoch", 0))
         shuffle_seed = int(config.get("shuffle_seed", config.get("seed", 1234)))
         validation_max_rows = int(config.get("validation_max_rows", 256))
-        recipe = str(config.get("training_recipe_version", "assistant-response-v2"))
+        recipe = str(config.get("training_recipe_version", "causal-pretrain-v1"))
         if checkpoint_interval < 1:
             raise BlockedJob("BLOCKED_INPUTS", "checkpoint_interval must be at least 1")
         if evaluation_interval < 1:
             raise BlockedJob("BLOCKED_INPUTS", "evaluation_interval must be at least 1")
-        if recipe != "assistant-response-v2":
+        if recipe not in FOUNDATION_TRAINING_RECIPES:
             raise BlockedJob("BLOCKED_INPUTS", "unsupported training recipe")
 
         rows = [
@@ -1210,7 +1240,7 @@ class LocalWorker:
             raise BlockedJob("BLOCKED_INPUTS", "approved training dataset is empty")
         order = list(range(len(rows)))
         random.Random(shuffle_seed + dataset_epoch).shuffle(order)
-        required = total_steps * batch_size
+        required = total_steps * effective_batch
         if dataset_position < 0 or dataset_position + required > len(order):
             raise BlockedJob(
                 "BLOCKED_INPUTS",
@@ -1253,7 +1283,7 @@ class LocalWorker:
         }
         try:
             for local_step in range(1, total_steps + 1):
-                completed_position = dataset_position + (local_step - 1) * batch_size
+                completed_position = dataset_position + (local_step - 1) * effective_batch
                 if callable(should_cancel) and (local_step == 1 or local_step % 10 == 0) and should_cancel():
                     completed_step = step_offset + local_step - 1
                     if completed_step > step_offset:
@@ -1269,20 +1299,49 @@ class LocalWorker:
                     raise CancelledJob(f"operator requested stop at completed step {completed_step}")
 
                 step = step_offset + local_step
-                offset = dataset_position + (local_step - 1) * batch_size
-                indices = order[offset : offset + batch_size]
-                batch = [rows[index] for index in indices]
                 started = time.perf_counter()
-                observed = adapter.train_step(batch)
-                if not isinstance(observed, Mapping):
-                    raise RuntimeError("adapter train_step did not return metrics")
-                current_position = dataset_position + local_step * batch_size
+                begin = getattr(adapter, "begin_accumulation", None)
+                accumulate = getattr(adapter, "accumulate_step", None)
+                finish = getattr(adapter, "finish_accumulation", None)
+                observed_totals: dict[str, float] = {}
+                if accumulation > 1 and not (callable(begin) and callable(accumulate) and callable(finish)):
+                    raise RuntimeError("adapter does not support gradient accumulation")
+                if callable(begin) and callable(accumulate) and callable(finish):
+                    begin()
+                    for micro_step in range(accumulation):
+                        offset = (
+                            dataset_position
+                            + (local_step - 1) * effective_batch
+                            + micro_step * batch_size
+                        )
+                        indices = order[offset : offset + batch_size]
+                        batch = [rows[index] for index in indices]
+                        micro = accumulate(batch, divisor=accumulation)
+                        if not isinstance(micro, Mapping):
+                            raise RuntimeError("adapter accumulate_step did not return metrics")
+                        for key, value in micro.items():
+                            observed_totals[str(key)] = observed_totals.get(str(key), 0.0) + float(value)
+                    finish()
+                    observed = {
+                        key: value / accumulation
+                        for key, value in observed_totals.items()
+                    }
+                else:
+                    offset = dataset_position + (local_step - 1) * effective_batch
+                    indices = order[offset : offset + batch_size]
+                    batch = [rows[index] for index in indices]
+                    observed = adapter.train_step(batch)
+                    if not isinstance(observed, Mapping):
+                        raise RuntimeError("adapter train_step did not return metrics")
+                current_position = dataset_position + local_step * effective_batch
                 record: dict[str, Any] = {
                     "step": step,
                     **{str(key): float(value) for key, value in observed.items()},
                     "dataset_epoch": dataset_epoch,
                     "dataset_position": current_position,
                     "examples_seen_this_epoch": current_position,
+                    "gradient_accumulation_steps": accumulation,
+                    "effective_batch_size": effective_batch,
                 }
                 evaluated_now = bool(validation_rows) and (
                     local_step % evaluation_interval == 0 or local_step == total_steps
@@ -1313,7 +1372,7 @@ class LocalWorker:
                         pass
 
             final_step = step_offset + total_steps
-            final_position = dataset_position + total_steps * batch_size
+            final_position = dataset_position + total_steps * effective_batch
             checkpoint = self._save_checkpoint(
                 settings,
                 adapter,

@@ -1,4 +1,6 @@
 .venv/
+.data-venv/
+.cohort-staging/
 __pycache__/
 .pytest_cache/
 *.py[cod]

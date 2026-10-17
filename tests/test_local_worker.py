@@ -595,3 +595,16 @@ def test_cohort_training_uses_one_shared_row_order_for_three_independent_models(
         manifest = json.loads(checkpoint.read_text())
         assert manifest["dataset_position"] == 8
         assert manifest["step"] == 2
+
+
+def test_worker_accepts_all_foundation_training_recipes() -> None:
+    from blackhole.local_worker import FOUNDATION_TRAINING_RECIPES
+
+    assert FOUNDATION_TRAINING_RECIPES == {
+        "causal-pretrain-v1",
+        "reasoning-mid-v1",
+        "software-engineering-sft-v1",
+        "instruction-sft-v1",
+        "judgment-sft-v1",
+        "preference-dpo-v1",
+    }

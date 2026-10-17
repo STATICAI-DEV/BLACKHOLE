@@ -386,3 +386,85 @@ def test_cohort_rejects_consuming_more_examples_than_approved_dataset(tmp_path: 
             dataset,
             owner_authorized=True,
         )
+
+
+def test_preference_dpo_beta_is_validated_and_persisted(tmp_path: Path) -> None:
+    from blackhole.datasets import DatasetRegistry
+    from blackhole.local_jobs import LocalJobQueue
+
+    settings = _settings(tmp_path)
+    dataset = DatasetRegistry(settings.data_root).register(
+        {
+            "dataset_id": "owner/preferences",
+            "revision": "v2",
+            "license": "apache-2.0",
+            "license_review": "approved",
+            "quality_review": "approved",
+            "content_sha256": "a" * 64,
+            "approval_status": "Approved",
+            "role": "preference",
+            "split": "train",
+            "language": "en",
+            "rows": 8,
+        }
+    )
+    queue = LocalJobQueue(settings)
+    config = {
+        "execution_target": "LOCAL",
+        "job_type": "TRAIN",
+        "run_id": "dpo-1",
+        "model_adapter": "STATIC-T",
+        "seed": 7,
+        "train_steps": 1,
+        "batch_size": 1,
+        "gradient_accumulation_steps": 8,
+        "training_recipe_version": "preference-dpo-v1",
+        "dpo_beta": 0.2,
+    }
+    queued = queue.enqueue(config, dataset, owner_authorized=True)
+    assert queued["config"]["dpo_beta"] == 0.2
+
+    config["run_id"] = "dpo-invalid"
+    config["dpo_beta"] = 0.0
+    with pytest.raises(ValueError, match="dpo_beta"):
+        queue.enqueue(config, dataset, owner_authorized=True)
+
+
+def test_foundation_cohort_is_rejected_on_single_local_gpu(tmp_path: Path) -> None:
+    from blackhole.datasets import DatasetRegistry
+    from blackhole.local_jobs import LocalJobQueue
+
+    settings = _settings(tmp_path)
+    dataset = DatasetRegistry(settings.data_root).register(
+        {
+            "dataset_id": "owner/foundation-cohort",
+            "revision": "v1",
+            "license": "apache-2.0",
+            "license_review": "approved",
+            "quality_review": "approved",
+            "content_sha256": "b" * 64,
+            "approval_status": "Approved",
+            "role": "pretraining",
+            "split": "train",
+            "language": "en",
+            "rows": 32,
+        }
+    )
+    queue = LocalJobQueue(settings)
+    with pytest.raises(ValueError, match="train STATIC-T, STATIC-X and STATIC-K sequentially"):
+        queue.enqueue_cohort(
+            {
+                "execution_target": "LOCAL",
+                "job_type": "COHORT_TRAIN",
+                "cohort_id": "foundation-cohort",
+                "members": [
+                    {"member_id": "T", "run_id": "foundation-t", "model_adapter": "STATIC-T", "seed": 1},
+                    {"member_id": "X", "run_id": "foundation-x", "model_adapter": "STATIC-X", "seed": 2},
+                ],
+                "train_steps": 1,
+                "batch_size": 1,
+                "gradient_accumulation_steps": 1,
+            },
+            dataset,
+            owner_authorized=True,
+        )
