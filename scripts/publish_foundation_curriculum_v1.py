@@ -173,15 +173,18 @@ stage_specs = [
     },
     {
         "name": "browser",
-        "dataset_id": "STATICAI/STATIC-BROWSER-AGENT-SFT-V2",
+        "dataset_id": "STATICAI/STATIC-BROWSER-RESEARCH-SFT-V3",
         "role": "browser_agent",
         "recipe": "browser-agent-sft-v1",
-        "license": "mit",
+        "license": "mixed-mit-cc-by-4.0",
         "train": required["browser"],
         "validation": required["browser_val"],
         "provenance": required["browser_prov"],
-        "remote": "static_browser_agent_sft_v2",
-        "sources": ["saital/browser-agent-phase1-sft-reasoning-action"],
+        "remote": "static_browser_research_sft_v3",
+        "sources": [
+            "saital/browser-agent-phase1-sft-reasoning-action",
+            "jxg25/EntiWeave",
+        ],
     },
     {
         "name": "judgment",

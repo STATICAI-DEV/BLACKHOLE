@@ -130,6 +130,11 @@ SOURCES = {
         "config": "default", "split": "val",
         "license": "mit", "language": "en",
     },
+    "research_qa": {
+        "repo": "jxg25/EntiWeave",
+        "config": "default", "split": "train",
+        "license": "cc-by-4.0", "language": "en",
+    },
 }
 
 def stable_hash(value: str) -> str:
