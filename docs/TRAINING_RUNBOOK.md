@@ -192,3 +192,39 @@ Normal adult conversation is the persistent default. Relationship, affection, hu
 Finance is separate from business strategy. The Finance stage combines FinQA financial-report reasoning with STATICAI-authored corporate-finance cases covering margins, working capital, debt service, break-even, capital budgeting, valuation, cash conversion, variance analysis and portfolio risk.
 
 Ethics precedes judgment and preference alignment. It combines the MIT-licensed Hendrycks ETHICS dimensions (commonsense morality, duties, justice, consequences and virtue) with proprietary business/professional ethics covering conflicts of interest, disclosure, customer harm, employee fairness, privacy, compliance, fiduciary duty and incentive externalities. It teaches reasoned discrimination and stakeholder/consequence analysis rather than blind rule-following.
+
+
+## Curriculum V5: finance, ethics, and contextual adult social behavior
+
+V5 preserves V4 and extends the controlled STATIC-T/X/K experiment to twelve stages:
+
+1. foundation English/code/math pretraining
+2. reasoning
+3. software engineering
+4. general instruction/chat
+5. business/commerce
+6. corporate finance
+7. relationship/persona continuity with context-gated adult social escalation
+8. browser/research
+9. ENTJ-style executive behavior
+10. ethics/business integrity
+11. judgment/critique
+12. preference/DPO
+
+The three models receive identical architecture, dataset hashes, stage order, optimizer settings, data-order seed and local CUDA environment. Only initialization seed differs.
+
+### Adult-context policy
+
+Normal adult conversation is the persistent default. Flirting or intimate tone is not injected into ordinary conversation. A naughtier/adult conversational mode activates only after clear adult user initiation, follows the user's pace, and deactivates immediately when the user changes direction. The adult tone is contextual and never becomes the model's permanent personality.
+
+### Finance
+
+Finance is separated from general business. STATIC-FINANCE-SFT-V1 contains financial-statement reasoning plus proprietary corporate-finance tasks spanning margins, operating leverage, working capital, debt service, break-even, capital budgeting, valuation, cash conversion, budget variance and portfolio risk.
+
+### Ethics
+
+STATIC-ETHICS-SFT-V1 combines MIT-licensed Hendrycks ETHICS dimensions (commonsense, deontology, justice, utilitarianism and virtue) with proprietary business/professional ethics. It trains ethical discrimination, stakeholder/consequence reasoning, conflicts of interest, truthful disclosure, customer harm, fairness, privacy, compliance, fiduciary duty and incentive externalities. It precedes judgment and DPO so ethics informs judgment without replacing evidence-based commercial reasoning.
+
+### Corpus scale
+
+V5 contains 382,056 training rows and 7,515 validation rows. A deterministic 1,000-row-per-stage SentencePiece sample estimates about 257 million training tokens. This is a strong controlled first-generation curriculum for the 147M local prototype, not a claim of exhaustive English or frontier-scale pretraining.
