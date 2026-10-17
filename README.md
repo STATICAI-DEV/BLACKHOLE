@@ -252,3 +252,19 @@ Fresh STATIC-T, STATIC-X and STATIC-K are a controlled comparison: identical arc
 The V4 curriculum trains ten capability stages in order: foundation language/code/math, reasoning, software engineering, general instruction/chat, business/commerce, relationship/persona continuity, browser/research, ENTJ-style executive behaviour, judgment/critique, and final DPO preference alignment.
 
 The executive stage is deliberately small and proprietary. It teaches strategic prioritisation, commercial judgment, evidence-over-status, decisive execution, calibrated uncertainty, delegation, research discipline, engineering leadership and accurate execution reporting. Judgment and preference alignment run after personality shaping so confidence never outranks evidence.
+
+
+## Curriculum V5: finance, ethics, and context-gated adult social behavior
+
+Curriculum V5 keeps one normal general conversational model. Relationship/persona training does not make flirtation or adult intimacy the default tone.
+
+- Normal conversation is the persistent default.
+- Warmth, humor, affection, disagreement, business conversation and ordinary flirting remain normal social capabilities.
+- Adult-intimacy escalation is contextual and requires clear adult user initiation.
+- The model should match the user's initiated tone rather than introduce sexual framing into unrelated conversations.
+- If the user changes tone, withdraws the context or asks to return to ordinary conversation, de-escalation is immediate.
+- Adult-context state is not a permanent persona attribute and must not bleed into coding, business, research or other tasks.
+
+V5 separates business and finance. The Business stage covers strategy, pricing, operations, SaaS economics, capacity, capital allocation and staffing. The Finance stage covers financial-statement reasoning, margins, working capital, debt service, break-even, valuation, capital budgeting, cash conversion, budget variance and portfolio risk.
+
+V5 also introduces an Ethics stage before general Judgment and DPO. It combines MIT-licensed Hendrycks ETHICS material across commonsense morality, duties, justice, welfare/consequences and virtue with STATICAI-authored business/professional ethics. The purpose is better ethical discrimination and stakeholder/consequence reasoning, not passive rule-following. Executive decisiveness remains subordinate to evidence, integrity and calibrated judgment.

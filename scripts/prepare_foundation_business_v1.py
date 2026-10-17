@@ -91,55 +91,30 @@ for di,domain in enumerate(DOMAINS):
 if len(auth_train)!=AUTH_TRAIN or len(auth_val)!=AUTH_VAL:
     raise RuntimeError(f"authored business count mismatch {len(auth_train)} {len(auth_val)}")
 
-fin_train=[]; fin_val=[]; seen=set(); scanned=0; rejected=0
-for raw in stream("finqa_business"):
-    scanned+=1
-    q=raw.get("question"); ans=raw.get("answer")
-    if not isinstance(q,str) or not isinstance(ans,str) or not q.strip() or not is_english(q):
-        continue
-    try: evidence_map=json.loads(raw.get("gold_inds") or "{}")
-    except (TypeError,json.JSONDecodeError): evidence_map={}
-    evidence=" ".join(clean_text(str(v)) for v in evidence_map.values() if str(v).strip())
-    if not evidence:
-        evidence=" ".join(clean_text(str(v)) for v in (raw.get("pre_text") or [])[-2:])
-    explanation=clean_text(str(raw.get("explanation") or ""))
-    program=clean_text(str(raw.get("program_re") or raw.get("program") or ""))
-    reasoning=explanation or ("Apply the financial calculation: "+program)
-    prompt=f"Financial evidence:\n{evidence}\n\nBusiness question: {clean_text(q)}"
-    response=f"Reasoning: {reasoning}\nAnswer: {clean_text(ans)}"
-    messages=[{"role":"user","content":prompt},{"role":"assistant","content":response}]
-    if conversation_length(messages,sp)>CONTEXT+1:
-        rejected+=1; continue
-    ident=stable_hash(str(raw.get("id") or scanned)+"|"+prompt+"|"+response)
-    if ident in seen: continue
-    seen.add(ident)
-    target=fin_val if int(ident[:8],16)%40==0 else fin_train
-    limit=FINQA_VAL if target is fin_val else FINQA_TRAIN
-    if len(target)>=limit: continue
-    target.append({"messages":messages,"source":"FinQA financial reasoning","source_subset":"finqa",
-                   "domain":"financial_reasoning","language":"en","pair_sha256":ident})
-    if len(fin_train)>=FINQA_TRAIN and len(fin_val)>=FINQA_VAL: break
-
-if len(fin_train)<FINQA_TRAIN or len(fin_val)<FINQA_VAL:
-    raise RuntimeError(f"FinQA incomplete train={len(fin_train)} val={len(fin_val)} scanned={scanned}")
-
-train=auth_train+fin_train; val=auth_val+fin_val
-train.sort(key=lambda r:stable_hash("business-train|"+r["pair_sha256"]))
-val.sort(key=lambda r:stable_hash("business-val|"+r["pair_sha256"]))
+train=auth_train
+val=auth_val
+train.sort(key=lambda r:stable_hash("business-v3-train|"+r["pair_sha256"]))
+val.sort(key=lambda r:stable_hash("business-v3-val|"+r["pair_sha256"]))
 trids={r["pair_sha256"] for r in train}; vids={r["pair_sha256"] for r in val}
-if len(trids)!=len(train) or len(vids)!=len(val) or trids&vids: raise RuntimeError("business leakage")
+if len(trids)!=len(train) or len(vids)!=len(val) or trids&vids:
+    raise RuntimeError("business leakage")
 
 tn,tsha=write_jsonl(BUSINESS_ROOT/"train.jsonl",train)
 vn,vsha=write_jsonl(BUSINESS_ROOT/"validation.jsonl",val)
-prov={"schema_version":"staticai.business-sft.v2","dataset_id":"STATICAI/STATIC-BUSINESS-SFT-V2",
-      "recipe":"business-sft-v1","license":"mixed-mit-staticai-proprietary",
-      "language_policy":"English-only business, commerce, finance and executive decision training.",
-      "train_rows":tn,"validation_rows":vn,"train_sha256":tsha,"validation_sha256":vsha,
-      "mixture":{"static_business":{"train":AUTH_TRAIN,"validation":AUTH_VAL},
-                 "finqa":{"train":FINQA_TRAIN,"validation":FINQA_VAL}},
-      "domains":list(DOMAINS)+["financial_reasoning"],
-      "sources":{"financial_reasoning":{"repo":"bevaya/FinQA","license":"mit"},
-                 "executive_decisions":{"repo":"STATICAI proprietary business decision curriculum","license":"STATICAI-proprietary"}},
-      "evidence":{"finqa_scanned":scanned,"finqa_rejected_context":rejected}}
+prov={
+    "schema_version":"staticai.business-sft.v3",
+    "dataset_id":"STATICAI/STATIC-BUSINESS-SFT-V3",
+    "recipe":"business-sft-v1",
+    "license":"staticai-proprietary",
+    "language_policy":"English-only strategy, commerce, operations and executive business decision training.",
+    "train_rows":tn,
+    "validation_rows":vn,
+    "train_sha256":tsha,
+    "validation_sha256":vsha,
+    "mixture":{"static_business":{"train":AUTH_TRAIN,"validation":AUTH_VAL}},
+    "domains":list(DOMAINS),
+    "sources":{"executive_decisions":{"repo":"STATICAI proprietary business decision curriculum","license":"STATICAI-proprietary"}},
+    "notes":"Finance reasoning moved to the dedicated STATIC-FINANCE-SFT-V1 stage in Curriculum V5."
+}
 pp=save_provenance("business_v1",prov)
-print(json.dumps({"status":"BUSINESS_READY","provenance":str(pp),**prov}),flush=True)
+print(json.dumps({"status":"BUSINESS_V3_READY","provenance":str(pp),**prov}),flush=True)

@@ -154,6 +154,10 @@ def test_foundation_business_relationship_and_browser_recipes_train() -> None:
             "A product has positive contribution margin. What should management verify before scaling?",
             "Verify demand, retention, cash requirements, and operational capacity before scaling.",
         ),
+        "finance-sft-v1": (
+            "Revenue is 100 and cost is 60. Calculate gross margin and state the implication.",
+            "Gross margin is 40%. The commercial implication depends on whether that margin covers operating cost and capital needs.",
+        ),
         "relationship-sft-v1": (
             "I need a quiet evening but I still care about us.",
             "Understood. Take the space you need; we can reconnect without turning it into a conflict.",
@@ -161,6 +165,14 @@ def test_foundation_business_relationship_and_browser_recipes_train() -> None:
         "browser-agent-sft-v1": (
             "Browser task: find the account settings. Candidate: [button] Settings. Choose the next action.",
             "[button] Settings -> CLICK",
+        ),
+        "executive-persona-sft-v1": (
+            "A senior leader prefers A but the evidence favors B. What should the decision-maker do?",
+            "Choose the option supported by evidence, explain the assumptions, and update the decision if better evidence changes the ranking.",
+        ),
+        "ethics-sft-v1": (
+            "A profitable contract requires hiding a material product limitation from the customer. Decide.",
+            "Disclose the material limitation; revenue does not justify manufacturing consent through omission.",
         ),
     }
     for recipe, (prompt, response) in cases.items():

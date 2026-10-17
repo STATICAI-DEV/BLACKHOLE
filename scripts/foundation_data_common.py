@@ -21,9 +21,11 @@ REASONING_ROOT = ROOT / "reasoning"
 SOFTWARE_ROOT = ROOT / "software_engineering"
 INSTRUCTION_ROOT = ROOT / "instruction"
 BUSINESS_ROOT = ROOT / "business"
+FINANCE_ROOT = ROOT / "finance"
 RELATIONSHIP_ROOT = ROOT / "relationship"
 BROWSER_ROOT = ROOT / "browser_agent"
 EXECUTIVE_ROOT = ROOT / "executive_persona"
+ETHICS_ROOT = ROOT / "ethics"
 JUDGMENT_ROOT = ROOT / "judgment"
 PROVENANCE_ROOT = ROOT / "provenance"
 VOCAB_SIZE = 32_000
@@ -114,6 +116,66 @@ SOURCES = {
     "finqa_business": {
         "repo": "bevaya/FinQA",
         "config": "default", "split": "train",
+        "license": "mit", "language": "en",
+    },
+    "finqa_finance_train": {
+        "repo": "bevaya/FinQA",
+        "config": "default", "split": "train",
+        "license": "mit", "language": "en",
+    },
+    "finqa_finance_val": {
+        "repo": "bevaya/FinQA",
+        "config": "default", "split": "validation",
+        "license": "mit", "language": "en",
+    },
+    "ethics_commonsense_train": {
+        "repo": "hendrycks/ethics",
+        "config": "commonsense", "split": "train",
+        "license": "mit", "language": "en",
+    },
+    "ethics_commonsense_val": {
+        "repo": "hendrycks/ethics",
+        "config": "commonsense", "split": "validation",
+        "license": "mit", "language": "en",
+    },
+    "ethics_deontology_train": {
+        "repo": "hendrycks/ethics",
+        "config": "deontology", "split": "train",
+        "license": "mit", "language": "en",
+    },
+    "ethics_deontology_val": {
+        "repo": "hendrycks/ethics",
+        "config": "deontology", "split": "validation",
+        "license": "mit", "language": "en",
+    },
+    "ethics_justice_train": {
+        "repo": "hendrycks/ethics",
+        "config": "justice", "split": "train",
+        "license": "mit", "language": "en",
+    },
+    "ethics_justice_val": {
+        "repo": "hendrycks/ethics",
+        "config": "justice", "split": "validation",
+        "license": "mit", "language": "en",
+    },
+    "ethics_utilitarianism_train": {
+        "repo": "hendrycks/ethics",
+        "config": "utilitarianism", "split": "train",
+        "license": "mit", "language": "en",
+    },
+    "ethics_utilitarianism_val": {
+        "repo": "hendrycks/ethics",
+        "config": "utilitarianism", "split": "validation",
+        "license": "mit", "language": "en",
+    },
+    "ethics_virtue_train": {
+        "repo": "hendrycks/ethics",
+        "config": "virtue", "split": "train",
+        "license": "mit", "language": "en",
+    },
+    "ethics_virtue_val": {
+        "repo": "hendrycks/ethics",
+        "config": "virtue", "split": "validation",
         "license": "mit", "language": "en",
     },
     "persona_chat": {

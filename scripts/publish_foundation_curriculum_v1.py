@@ -48,12 +48,16 @@ required = {
     "instruction_val": ROOT / "instruction" / "validation.jsonl",
     "business": ROOT / "business" / "train.jsonl",
     "business_val": ROOT / "business" / "validation.jsonl",
+    "finance": ROOT / "finance" / "train.jsonl",
+    "finance_val": ROOT / "finance" / "validation.jsonl",
     "relationship": ROOT / "relationship" / "train.jsonl",
     "relationship_val": ROOT / "relationship" / "validation.jsonl",
     "browser": ROOT / "browser_agent" / "train.jsonl",
     "browser_val": ROOT / "browser_agent" / "validation.jsonl",
     "executive": ROOT / "executive_persona" / "train.jsonl",
     "executive_val": ROOT / "executive_persona" / "validation.jsonl",
+    "ethics": ROOT / "ethics" / "train.jsonl",
+    "ethics_val": ROOT / "ethics" / "validation.jsonl",
     "judgment": ROOT / "judgment" / "train.jsonl",
     "judgment_val": ROOT / "judgment" / "validation.jsonl",
     "preference": ROOT / "judgment" / "preference" / "train.jsonl",
@@ -63,9 +67,11 @@ required = {
     "software_prov": ROOT / "provenance" / "software_v1.json",
     "instruction_prov": ROOT / "provenance" / "instruction_v1.json",
     "business_prov": ROOT / "provenance" / "business_v1.json",
+    "finance_prov": ROOT / "provenance" / "finance_v1.json",
     "relationship_prov": ROOT / "provenance" / "relationship_v1.json",
     "browser_prov": ROOT / "provenance" / "browser_v1.json",
     "executive_prov": ROOT / "provenance" / "executive_v1.json",
+    "ethics_prov": ROOT / "provenance" / "ethics_v1.json",
     "judgment_prov": ROOT / "provenance" / "judgment_v1.json",
     "preference_prov": ROOT / "provenance" / "preference_v1.json",
     "judgment_benchmark": ROOT / "evaluations" / "judgment_v1" / "rewardbench2.jsonl",
@@ -146,29 +152,43 @@ stage_specs = [
     },
     {
         "name": "business",
-        "dataset_id": "STATICAI/STATIC-BUSINESS-SFT-V2",
+        "dataset_id": "STATICAI/STATIC-BUSINESS-SFT-V3",
         "role": "business",
         "recipe": "business-sft-v1",
-        "license": "mixed-mit-staticai-proprietary",
+        "license": "staticai-proprietary",
         "train": required["business"],
         "validation": required["business_val"],
         "provenance": required["business_prov"],
-        "remote": "static_business_sft_v2",
+        "remote": "static_business_sft_v3",
         "sources": [
-            "bevaya/FinQA",
             "STATICAI authored business decision curriculum",
         ],
     },
     {
+        "name": "finance",
+        "dataset_id": "STATICAI/STATIC-FINANCE-SFT-V1",
+        "role": "finance",
+        "recipe": "finance-sft-v1",
+        "license": "mixed-mit-staticai-proprietary",
+        "train": required["finance"],
+        "validation": required["finance_val"],
+        "provenance": required["finance_prov"],
+        "remote": "static_finance_sft_v1",
+        "sources": [
+            "bevaya/FinQA",
+            "STATICAI proprietary corporate-finance curriculum",
+        ],
+    },
+    {
         "name": "relationship",
-        "dataset_id": "STATICAI/STATIC-RELATIONSHIP-SFT-V2",
+        "dataset_id": "STATICAI/STATIC-RELATIONSHIP-SFT-V3",
         "role": "relationship",
         "recipe": "relationship-sft-v1",
         "license": "mixed-cc-by-4.0-staticai-proprietary",
         "train": required["relationship"],
         "validation": required["relationship_val"],
         "provenance": required["relationship_prov"],
-        "remote": "static_relationship_sft_v2",
+        "remote": "static_relationship_sft_v3",
         "sources": [
             "google/Synthetic-Persona-Chat",
             "STATICAI authored adult relationship conversation curriculum",
@@ -201,6 +221,21 @@ stage_specs = [
         "remote": "static_executive_persona_sft_v1",
         "sources": [
             "STATICAI authored ENTJ-style executive-agent curriculum",
+        ],
+    },
+    {
+        "name": "ethics",
+        "dataset_id": "STATICAI/STATIC-ETHICS-SFT-V1",
+        "role": "ethics",
+        "recipe": "ethics-sft-v1",
+        "license": "mixed-mit-staticai-proprietary",
+        "train": required["ethics"],
+        "validation": required["ethics_val"],
+        "provenance": required["ethics_prov"],
+        "remote": "static_ethics_sft_v1",
+        "sources": [
+            "hendrycks/ethics",
+            "STATICAI proprietary business/professional ethics curriculum",
         ],
     },
     {
@@ -336,7 +371,7 @@ if sha256(required["software_benchmark_answers"]) != software_provenance.get("an
     raise RuntimeError("SOFTWARE_BENCHMARK_ANSWER_HASH_MISMATCH")
 
 summary = {
-    "schema_version": "staticai.foundation-curriculum.v4",
+    "schema_version": "staticai.foundation-curriculum.v5",
     "tokenizer_uri": tokenizer_uri,
     "tokenizer_sha256": tokenizer_sha,
     "stages": published,
@@ -363,5 +398,5 @@ summary = {
 }
 summary_path = ROOT / "CURRICULUM_MANIFEST.json"
 summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-upload(fs, summary_path, f"{BUCKET}/manifests/static_foundation_curriculum_v4.json")
+upload(fs, summary_path, f"{BUCKET}/manifests/static_foundation_curriculum_v5.json")
 print(json.dumps({"status": "CURRICULUM_PUBLISHED", "summary": summary}, default=str), flush=True)

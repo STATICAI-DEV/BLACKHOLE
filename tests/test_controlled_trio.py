@@ -12,9 +12,11 @@ def test_trio_is_controlled_except_for_initialization_seed() -> None:
         "software",
         "instruction",
         "business",
+        "finance",
         "relationship",
         "browser",
         "executive",
+        "ethics",
         "judgment",
         "preference",
     )

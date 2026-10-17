@@ -606,8 +606,11 @@ def test_worker_accepts_all_foundation_training_recipes() -> None:
         "software-engineering-sft-v1",
         "instruction-sft-v1",
         "business-sft-v1",
+        "finance-sft-v1",
         "relationship-sft-v1",
         "browser-agent-sft-v1",
+        "executive-persona-sft-v1",
+        "ethics-sft-v1",
         "judgment-sft-v1",
         "preference-dpo-v1",
     }

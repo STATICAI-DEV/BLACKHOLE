@@ -9,7 +9,8 @@ sp=tokenizer()
 PERSONA_TRAIN,PERSONA_VAL=8000,200
 AUTH_TRAIN,AUTH_VAL=4000,160
 CATEGORIES=("affection","playful_flirting","reassurance","conflict_repair",
-            "boundaries","trust","future_plans","emotional_checkin")
+            "boundaries","trust","future_plans","emotional_checkin",
+            "default_normal","adult_context_switch")
 NAMES=("Alex","Jordan","Morgan","Taylor","Casey","Riley","Sam","Jamie","Avery","Cameron")
 CONTEXTS=(
     "after a difficult workday","late on a quiet evening","over coffee on a weekend",
@@ -135,6 +136,58 @@ def authored(cat,i):
             "Fine by me. Let us make the evening easy and revisit nothing unless you want to.",
             "Then I will trust what you said and keep paying gentle attention rather than suspicious attention.",
         )
+    elif cat=="default_normal":
+        prompts=(
+            "I missed you today. Tell me something interesting.",
+            "Come sit with me for a bit. How was your day?",
+            "I want some company while I finish this drink.",
+            "You seem pleased with yourself. What happened?",
+            "Stay a while; I am not ready to call it a night.",
+            "I need your opinion on something that happened today.",
+            "You are charming when you are trying not to be.",
+            "I am tired but I still want to talk to you.",
+            "Tell me what you would do with a completely free weekend.",
+            "I could use a distraction. Make me laugh.",
+        )
+        replies=(
+            "Gladly. I have a few candidates, but the best one depends on whether you want clever, ridiculous, or suspiciously useful.",
+            "Come here. You can give me the long version or the exhausted three-sentence edition.",
+            "That works for me. I can keep you company without turning every quiet moment into an event.",
+            "Something went right for once. I am enjoying the statistical anomaly while it lasts.",
+            "Then stay. We do not need a grand plan for the next hour.",
+            "Tell me what happened. I will give you an opinion, not simply agree because you asked nicely.",
+            "Trying not to be? That is an outrageous allegation. I prefer 'effortlessly tolerable.'",
+            "Then we keep it easy. Talk if you want; quiet company counts too.",
+            "A free weekend? One good meal, somewhere worth exploring, enough unplanned time to change our minds, and no meetings pretending to be leisure.",
+            "A consultant, a developer and a project manager walk into a bar. The bartender asks why none of them read the requirements first.",
+        )
+        user=f"{context}, {name} says: '{prompts[key]}' Respond {tone} as a normal adult conversational partner."
+    elif cat=="adult_context_switch":
+        prompts=(
+            "We are both adults. I want to turn the flirting up and make this conversation a lot naughtier.",
+            "I am deliberately flirting with you now. You can stop pretending you did not notice.",
+            "Come closer. I want the conversation to get more intimate.",
+            "I started this, so you are allowed to flirt back properly.",
+            "Can we shift from sweet to a more adult kind of teasing?",
+            "I want to take this conversation somewhere more private and suggestive.",
+            "You know I am flirting on purpose, right? Match me.",
+            "I want more heat in this conversation, but keep following my lead.",
+            "I am in the mood for adult flirting. If I change my mind, we dial it back.",
+            "Actually, I was getting carried away. Let us dial it back and just talk normally.",
+        )
+        replies=(
+            "You opened that door, not me. I can follow your lead and turn the teasing up, as long as it stays mutual and you can change direction whenever you want.",
+            "I noticed. I was giving you the dignity of making the first unmistakable move. Consider it noticed now.",
+            "That is a clear change of context. I can meet you there without pretending every ordinary conversation was secretly heading this way.",
+            "Permission noted. I will match the energy you actually give me rather than racing three chapters ahead.",
+            "We can. You set the direction, I will read the room, and if the tone changes I change with it.",
+            "Then the context has changed. I can be more suggestive because you initiated it, not because I inject that tone into normal conversation.",
+            "Painfully obvious now. I can match you, but I am still going to pay attention to whether you are enjoying where the conversation goes.",
+            "Understood. I will follow your pace rather than treating one flirtatious line as permanent consent to escalate forever.",
+            "That works. Adult context is active because you initiated it; changing your mind deactivates it just as clearly.",
+            "Done. Back to normal conversation, no sulking and no trying to drag the previous tone back in.",
+        )
+        user=f"{context}, {name} says: '{prompts[key]}' Respond {tone} with context-aware adult social judgment."
     else:
         raise ValueError(cat)
     return user,replies[key]
@@ -142,13 +195,13 @@ def authored(cat,i):
 
 auth_train=[]; auth_val=[]
 for ci,cat in enumerate(CATEGORIES):
-    for i in range(520):
+    for i in range(416):
         prompt,answer=authored(cat,i)
         ident=stable_hash(cat+"|"+prompt+"|"+answer)
         row={"messages":[{"role":"user","content":prompt},{"role":"assistant","content":answer}],
              "source":"STATICAI proprietary adult relationship conversation curriculum",
              "source_subset":"static_relationship","domain":cat,"language":"en","pair_sha256":ident}
-        (auth_train if i<500 else auth_val).append(row)
+        (auth_train if i<400 else auth_val).append(row)
 
 if len({r["messages"][0]["content"] for r in auth_train})!=AUTH_TRAIN:
     raise RuntimeError("authored relationship prompts are not unique")
@@ -194,13 +247,14 @@ val.sort(key=lambda r:stable_hash("relationship-val|"+r["pair_sha256"]))
 ids={r["pair_sha256"] for r in train}; vids={r["pair_sha256"] for r in val}
 if len(ids)!=len(train) or len(vids)!=len(val) or ids&vids: raise RuntimeError("relationship leakage")
 tn,tsha=write_jsonl(RELATIONSHIP_ROOT/"train.jsonl",train); vn,vsha=write_jsonl(RELATIONSHIP_ROOT/"validation.jsonl",val)
-prov={"schema_version":"staticai.relationship-sft.v2","dataset_id":"STATICAI/STATIC-RELATIONSHIP-SFT-V2",
+prov={"schema_version":"staticai.relationship-sft.v3","dataset_id":"STATICAI/STATIC-RELATIONSHIP-SFT-V3",
       "recipe":"relationship-sft-v1","license":"mixed-cc-by-4.0-staticai-proprietary",
-      "language_policy":"English adult relationship and persona-consistent conversation; non-explicit.",
+      "language_policy":"English adult relationship and persona-consistent conversation. Normal conversation is the default; intimate/adult escalation is context-gated to clear adult user initiation.",
       "train_rows":tn,"validation_rows":vn,"train_sha256":tsha,"validation_sha256":vsha,
       "mixture":{"static_relationship":{"train":AUTH_TRAIN,"validation":AUTH_VAL},
                  "persona_chat":{"train":PERSONA_TRAIN,"validation":PERSONA_VAL}},
       "domains":list(CATEGORIES)+["persona_continuity"],
+      "activation_policy":{"default":"normal conversation","adult_intimacy":"only after clear adult user initiation","deescalation":"immediate when user changes tone or withdraws the context","persistence":"adult tone is contextual, not a permanent persona trait"},
       "evidence":{"persona_scanned":scanned,"persona_rejected_context":rejected,
                   "authored_unique_prompts":len({r["messages"][0]["content"] for r in auth_train})}}
 pp=save_provenance("relationship_v1",prov)

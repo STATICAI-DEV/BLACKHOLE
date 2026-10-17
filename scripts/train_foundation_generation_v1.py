@@ -6,11 +6,13 @@ Stages per model:
   3. software-engineering SFT from stage-2 weights with a fresh optimizer
   4. general instruction SFT from stage-3 weights with a fresh optimizer
   5. business/commerce SFT from stage-4 weights with a fresh optimizer
-  6. relationship/persona SFT from stage-5 weights with a fresh optimizer
-  7. browser-agent/research SFT from stage-6 weights with a fresh optimizer
-  8. ENTJ-style executive persona SFT from stage-7 weights with a fresh optimizer
-  9. judgment/critique SFT from stage-8 weights with a fresh optimizer
- 10. direct preference optimization from stage-9 weights against a frozen stage-start reference
+  6. corporate-finance SFT from stage-5 weights with a fresh optimizer
+  7. normal relationship/persona + context-gated adult social SFT from stage-6 weights
+  8. browser-agent/research SFT from stage-7 weights with a fresh optimizer
+  9. ENTJ-style executive persona SFT from stage-8 weights with a fresh optimizer
+ 10. ethics/business-integrity SFT from stage-9 weights with a fresh optimizer
+ 11. judgment/critique SFT from stage-10 weights with a fresh optimizer
+ 12. direct preference optimization from stage-11 weights against a frozen stage-start reference
 
 All compute runs on the authenticated local CUDA worker. This script is intentionally
 sequential because three 147M training states do not belong in an 8 GB laptop GPU at once.
@@ -32,7 +34,7 @@ truststore.inject_into_ssl()
 
 OWNER = "STATICAI"
 SPACE = "STATICAI/BLACKHOLE"
-CURRICULUM_URI = "hf://buckets/STATICAI/BLACKHOLE/DATA/manifests/static_foundation_curriculum_v4.json"
+CURRICULUM_URI = "hf://buckets/STATICAI/BLACKHOLE/DATA/manifests/static_foundation_curriculum_v5.json"
 WORKER = Path(r"D:\05_NETWORK\Infrastructure\Local\BLACKHOLE\scripts\local_gpu_worker.py")
 OUT = Path(r"D:\04_BLACKHOLE\Training")
 PYTHON = Path(sys.executable)
@@ -89,6 +91,15 @@ STAGE_CONFIG = {
         "checkpoint_interval": 1500,
         "evaluation_interval": 750,
     },
+    "finance": {
+        "recipe": "finance-sft-v1",
+        "learning_rate": 3e-5,
+        "weight_decay": 0.01,
+        "warmup_steps": 100,
+        "min_lr_ratio": 0.1,
+        "checkpoint_interval": 1500,
+        "evaluation_interval": 750,
+    },
     "relationship": {
         "recipe": "relationship-sft-v1",
         "learning_rate": 2e-5,
@@ -115,6 +126,15 @@ STAGE_CONFIG = {
         "min_lr_ratio": 0.1,
         "checkpoint_interval": 500,
         "evaluation_interval": 250,
+    },
+    "ethics": {
+        "recipe": "ethics-sft-v1",
+        "learning_rate": 2e-5,
+        "weight_decay": 0.01,
+        "warmup_steps": 100,
+        "min_lr_ratio": 0.1,
+        "checkpoint_interval": 1500,
+        "evaluation_interval": 750,
     },
     "judgment": {
         "recipe": "judgment-sft-v1",
@@ -145,7 +165,7 @@ EFFECTIVE_BATCH = MICRO_BATCH * ACCUMULATION
 CONTEXT = 2048
 VALIDATION_ROWS = 128
 DATA_ORDER_SEED = 20_261_017
-STAGE_ORDER = ("pretrain", "reasoning", "software", "instruction", "business", "relationship", "browser", "executive", "judgment", "preference")
+STAGE_ORDER = ("pretrain", "reasoning", "software", "instruction", "business", "finance", "relationship", "browser", "executive", "ethics", "judgment", "preference")
 
 
 def save(path: Path, payload: dict[str, Any]) -> None:
@@ -212,7 +232,7 @@ def main() -> None:
         raise RuntimeError(f"RECEIPT_ALREADY_EXISTS: {receipt_path}")
 
     receipt: dict[str, Any] = {
-        "schema_version": "staticai.foundation-generation.v2",
+        "schema_version": "staticai.foundation-generation.v3",
         "owner": OWNER,
         "space": SPACE,
         "architecture": "STATIC-FOUNDATION-TERNARY-v1",
