@@ -27,7 +27,7 @@ The packaged build was validated on 13 October 2026 before publication.
 
 These lines describe the validated source deployment, not the privacy state of this public GitHub repository.
 
-- Automated regression suite: **99/99 passed**
+- Automated regression suite: **101/101 passed**
 - Three-model acceptance run: **3/3 passed**
 - Local CUDA training: **passed**
 - Intentional interruption and safe cancellation: **passed**
@@ -38,6 +38,19 @@ These lines describe the validated source deployment, not the privacy state of t
 - 500-step bounded GPU stability run: **passed**
 
 The acceptance run used three disposable experimental models (T/X/K). Their weights and runtime artifacts are **not included** in this repository.
+
+## V1.1 English training upgrade
+
+The current build adds an English conversational SFT path while preserving existing checkpoints:
+
+- assistant-response-only supervised loss instead of learning the user prompt as a target
+- deterministic per-epoch shuffling with dataset position tracked independently of global optimizer step
+- aggregate validation over a bounded fixed validation sample
+- strict rejection of examples that exceed the 256-byte model context
+- `english-heldout-v2`, a 50-prompt scored Arena suite
+- an English-only foundation dataset preparation pipeline using explicitly English OpenAssistant rows plus STATICAI-authored fundamentals
+
+Dataset preparation does not authorize or start model training. Runtime training remains separately owner-authorized.
 
 ## What BLACKHOLE provides
 
@@ -83,7 +96,7 @@ pip install -r requirements.txt
 python -m pytest -q tests
 ~~~
 
-The clean release should report **99 passing tests** before deployment-specific configuration is introduced.
+The current validated build should report **101 passing tests** before deployment-specific configuration is introduced.
 
 ## Local development
 

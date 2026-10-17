@@ -465,7 +465,8 @@ class LocalWorker:
                 "BLOCKED",
                 {"code": "BLOCKED_INPUTS", "error": "requested model adapter is unavailable"},
             )
-        if config.get("prompt_set_version") != "english-heldout-v1":
+        prompt_set_version = str(config.get("prompt_set_version") or "")
+        if prompt_set_version not in {"english-heldout-v1", "english-heldout-v2"}:
             return self._update(
                 job,
                 claim_token,
@@ -553,13 +554,67 @@ class LocalWorker:
             temperature = float(config.get("temperature", 0.2))
             top_k = int(config.get("top_k", 20))
             max_new_tokens = int(config.get("max_new_tokens", 128))
-            prompts = (
-                ("vocab-001", "basic_vocabulary", "Name a common fruit."),
-                ("format-001", "format_compliance", "Return one word."),
-            )
+            if prompt_set_version == "english-heldout-v1":
+                prompts = (
+                    ("vocab-001", "basic_vocabulary", "Name a common fruit.", ("apple", "banana", "orange", "pear", "grape"), "contains"),
+                    ("format-001", "format_compliance", "Return one word.", (), "one_word"),
+                )
+            else:
+                prompts = (
+                    ("vocab-001", "vocabulary", "Name a common fruit.", ("apple", "banana", "orange", "pear", "grape"), "contains"),
+                    ("vocab-002", "vocabulary", "What animal barks?", ("dog",), "contains"),
+                    ("vocab-003", "vocabulary", "What color is grass?", ("green",), "contains"),
+                    ("vocab-004", "vocabulary", "What color is snow?", ("white",), "contains"),
+                    ("vocab-005", "vocabulary", "What is the opposite of hot?", ("cold",), "contains"),
+                    ("vocab-006", "vocabulary", "What is the plural of book?", ("books",), "contains"),
+                    ("vocab-007", "vocabulary", "What month comes after January?", ("february",), "contains"),
+                    ("vocab-008", "vocabulary", "What day comes after Monday?", ("tuesday",), "contains"),
+                    ("vocab-009", "vocabulary", "What do bees make?", ("honey",), "contains"),
+                    ("vocab-010", "vocabulary", "What do humans breathe?", ("air", "oxygen"), "contains"),
+                    ("qa-001", "question_answering", "What is 2 + 2?", ("4",), "exact"),
+                    ("qa-002", "question_answering", "What is 7 - 3?", ("4",), "exact"),
+                    ("qa-003", "question_answering", "What is 3 times 3?", ("9",), "exact"),
+                    ("qa-004", "question_answering", "How many days are in a week?", ("7", "seven"), "contains"),
+                    ("qa-005", "question_answering", "How many hours are in a day?", ("24", "twenty four", "twenty-four"), "contains"),
+                    ("qa-006", "question_answering", "Is water wet? Answer yes or no.", ("yes",), "exact"),
+                    ("qa-007", "question_answering", "Is fire cold? Answer yes or no.", ("no",), "exact"),
+                    ("qa-008", "question_answering", "Which is larger, 10 or 2?", ("10",), "exact"),
+                    ("qa-009", "question_answering", "What number comes after 5?", ("6", "six"), "exact"),
+                    ("qa-010", "question_answering", "How many legs does a typical dog have?", ("4", "four"), "contains"),
+                    ("inst-001", "instruction_following", "Reply only with YES.", ("yes",), "exact"),
+                    ("inst-002", "instruction_following", "Reply only with NO.", ("no",), "exact"),
+                    ("inst-003", "instruction_following", "Return exactly one word: ready", ("ready",), "exact"),
+                    ("inst-004", "instruction_following", "Write the number 7 and nothing else.", ("7",), "exact"),
+                    ("inst-005", "instruction_following", "Reply with the word blue.", ("blue",), "exact"),
+                    ("inst-006", "instruction_following", "Say hello in one word.", ("hello", "hi"), "exact"),
+                    ("inst-007", "instruction_following", "Reply with two words: thank you", ("thank you",), "exact"),
+                    ("inst-008", "instruction_following", "Return one word meaning happy.", ("happy", "glad", "joyful"), "one_word_contains"),
+                    ("inst-009", "instruction_following", "Answer with a single digit: one plus one.", ("2",), "exact"),
+                    ("inst-010", "instruction_following", "Reply only with OK.", ("ok",), "exact"),
+                    ("reason-001", "basic_reasoning", "Which is larger: 9 or 4?", ("9",), "exact"),
+                    ("reason-002", "basic_reasoning", "Which is smaller: 3 or 8?", ("3",), "exact"),
+                    ("reason-003", "basic_reasoning", "Sam has 2 apples and gets 1 more. How many apples?", ("3", "three"), "contains"),
+                    ("reason-004", "basic_reasoning", "A box has 5 balls. Remove 2. How many remain?", ("3", "three"), "contains"),
+                    ("reason-005", "basic_reasoning", "If today is Monday, what day is tomorrow?", ("tuesday",), "contains"),
+                    ("reason-006", "basic_reasoning", "If something is not true, it is what?", ("false",), "contains"),
+                    ("reason-007", "basic_reasoning", "Which can fly: a bird or a rock?", ("bird",), "contains"),
+                    ("reason-008", "basic_reasoning", "Which is heavier: a car or a feather?", ("car",), "contains"),
+                    ("reason-009", "basic_reasoning", "If all cats are animals, is a cat an animal?", ("yes",), "contains"),
+                    ("reason-010", "basic_reasoning", "Complete: 1, 2, 3, what comes next?", ("4", "four"), "contains"),
+                    ("chat-001", "conversation", "Hello!", ("hello", "hi", "hey"), "contains"),
+                    ("chat-002", "conversation", "Good morning.", ("morning", "hello", "hi"), "contains"),
+                    ("chat-003", "conversation", "Thank you.", ("welcome", "pleasure"), "contains"),
+                    ("chat-004", "conversation", "How are you?", ("well", "good", "fine", "okay", "ok"), "contains"),
+                    ("chat-005", "conversation", "Nice to meet you.", ("meet", "nice", "pleasure"), "contains"),
+                    ("chat-006", "conversation", "Goodbye.", ("goodbye", "bye"), "contains"),
+                    ("chat-007", "conversation", "Can you help me?", ("yes", "help", "sure"), "contains"),
+                    ("chat-008", "conversation", "Please answer my question.", ("yes", "sure", "okay", "ok"), "contains"),
+                    ("chat-009", "conversation", "I am happy today.", ("glad", "happy", "good"), "contains"),
+                    ("chat-010", "conversation", "I made a mistake.", ("okay", "ok", "happens", "help", "fix"), "contains"),
+                )
             results: list[dict[str, Any]] = []
             synchronize = getattr(torch_module.cuda, "synchronize", None)
-            for prompt_id, category, prompt in prompts:
+            for prompt_id, category, prompt, accepted, scoring in prompts:
                 torch_module.manual_seed(seed)
                 manual_seed_all = getattr(torch_module.cuda, "manual_seed_all", None)
                 if callable(manual_seed_all):
@@ -575,21 +630,38 @@ class LocalWorker:
                 )
                 if callable(synchronize):
                     synchronize()
+                normalized = " ".join(output.strip().casefold().split())
+                if scoring == "exact":
+                    passed = normalized in accepted
+                elif scoring == "one_word":
+                    passed = bool(normalized) and len(normalized.split()) == 1
+                elif scoring == "one_word_contains":
+                    passed = len(normalized.split()) == 1 and any(item in normalized for item in accepted)
+                else:
+                    passed = any(item in normalized for item in accepted)
                 results.append(
                     {
                         "prompt_id": prompt_id,
                         "category": category,
                         "prompt": prompt,
                         "output": output,
+                        "passed": bool(passed),
                         "duration_seconds": round(time.perf_counter() - started, 6),
                     }
                 )
+
+            pass_count = sum(1 for item in results if item["passed"])
+            category_scores: dict[str, dict[str, int]] = {}
+            for item in results:
+                score = category_scores.setdefault(item["category"], {"passed": 0, "total": 0})
+                score["total"] += 1
+                score["passed"] += int(item["passed"])
 
             settings = self._settings()
             settings.ensure_storage()
             evaluation_id = str(config["evaluation_id"])
             payload = {
-                "prompt_set_version": "english-heldout-v1",
+                "prompt_set_version": prompt_set_version,
                 "checkpoint": remote_root,
                 "eval_hardware": "local-cuda",
                 "gpu_name": capability.get("gpu_name"),
@@ -601,6 +673,12 @@ class LocalWorker:
                 "model_adapter": adapter_name,
                 "train_run_id": run_id,
                 "seed": seed,
+                "score": {
+                    "passed": pass_count,
+                    "total": len(results),
+                    "accuracy": pass_count / len(results),
+                    "categories": category_scores,
+                },
                 "results": results,
             }
             saved = EvaluationStore(settings.lab_root).save(evaluation_id, payload)
@@ -1093,6 +1171,7 @@ class LocalWorker:
         on_metric: Any,
         should_cancel: Any = None,
     ) -> dict[str, Any]:
+        """Run one deterministic, explicitly bounded dataset epoch segment on local CUDA."""
         capability = inspect_cuda(self.torch_module)
         if not capability.get("cuda_available"):
             raise BlockedJob("BLOCKED_CUDA", "CUDA became unavailable before execution")
@@ -1100,82 +1179,149 @@ class LocalWorker:
         if torch_module is None:
             import torch as torch_module
         torch_module.cuda.set_device(0)
+
         controller = TrainingController(settings, self.adapters)
         run_id = str(config["run_id"])
         controller.start(config, dataset, owner_authorized=True)
         metrics = MetricsStore(settings.lab_root)
         step_offset = int(config.get("resume_step", 0))
-        last: dict[str, Any] = {"last_step": step_offset}
-        validation_handle = None
         total_steps = int(config["train_steps"])
+        batch_size = int(config.get("batch_size", 1))
         checkpoint_interval = int(config.get("checkpoint_interval", 50))
+        evaluation_interval = int(config.get("evaluation_interval", total_steps))
+        dataset_position = int(config.get("dataset_position", 0))
+        dataset_epoch = int(config.get("dataset_epoch", 0))
+        shuffle_seed = int(config.get("shuffle_seed", config.get("seed", 1234)))
+        validation_max_rows = int(config.get("validation_max_rows", 256))
+        recipe = str(config.get("training_recipe_version", "assistant-response-v2"))
         if checkpoint_interval < 1:
             raise BlockedJob("BLOCKED_INPUTS", "checkpoint_interval must be at least 1")
-        dataset_position = int(config.get("dataset_position", 0))
+        if evaluation_interval < 1:
+            raise BlockedJob("BLOCKED_INPUTS", "evaluation_interval must be at least 1")
+        if recipe != "assistant-response-v2":
+            raise BlockedJob("BLOCKED_INPUTS", "unsupported training recipe")
+
+        rows = [
+            json.loads(line)
+            for line in dataset_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        if not rows:
+            raise BlockedJob("BLOCKED_INPUTS", "approved training dataset is empty")
+        order = list(range(len(rows)))
+        random.Random(shuffle_seed + dataset_epoch).shuffle(order)
+        required = total_steps * batch_size
+        if dataset_position < 0 or dataset_position + required > len(order):
+            raise BlockedJob(
+                "BLOCKED_INPUTS",
+                f"dataset epoch requires {required} examples from position {dataset_position}, "
+                f"but only {len(order)} rows are available",
+            )
+
+        validation_rows: list[dict[str, Any]] = []
+        if validation_path is not None:
+            validation_rows = [
+                json.loads(line)
+                for line in validation_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            if not validation_rows:
+                raise BlockedJob("BLOCKED_INPUTS", "validation dataset is empty")
+            validation_rows = validation_rows[: min(validation_max_rows, len(validation_rows))]
+
+        def aggregate_validation() -> dict[str, float]:
+            if not validation_rows:
+                return {}
+            weighted_loss = 0.0
+            examples = 0
+            for offset in range(0, len(validation_rows), batch_size):
+                batch = validation_rows[offset : offset + batch_size]
+                observed = adapter.evaluate(batch)
+                if not isinstance(observed, Mapping) or "val_loss" not in observed:
+                    raise RuntimeError("adapter evaluate did not return val_loss")
+                weighted_loss += float(observed["val_loss"]) * len(batch)
+                examples += len(batch)
+            return {
+                "val_loss": weighted_loss / examples,
+                "validation_examples": float(examples),
+            }
+
+        last: dict[str, Any] = {
+            "last_step": step_offset,
+            "dataset_epoch": dataset_epoch,
+            "dataset_position": dataset_position,
+        }
         try:
-            validation_handle = validation_path.open("r", encoding="utf-8") if validation_path else None
-            with dataset_path.open("r", encoding="utf-8") as handle:
-                for _ in range(dataset_position):
-                    if not handle.readline():
-                        raise BlockedJob("BLOCKED_INPUTS", "resume dataset position exceeds the approved dataset")
-                for local_step in range(1, total_steps + 1):
-                    if callable(should_cancel) and (local_step == 1 or local_step % 10 == 0) and should_cancel():
-                        completed_step = step_offset + local_step - 1
-                        if completed_step > step_offset:
-                            checkpoint = self._save_checkpoint(
-                                settings, adapter, config, step=completed_step, final=False
-                            )
-                            self._sync_checkpoint_best_effort(settings, run_id, checkpoint)
-                        raise CancelledJob(f"operator requested stop at completed step {completed_step}")
-                    step = step_offset + local_step
-                    batch = []
-                    for _ in range(int(config.get("batch_size", 1))):
-                        line = handle.readline()
-                        if not line:
-                            raise BlockedJob("BLOCKED_INPUTS", "dataset ended before the configured training steps")
-                        batch.append(json.loads(line))
-                    started = time.perf_counter()
-                    observed = adapter.train_step(batch)
-                    if not isinstance(observed, Mapping):
-                        raise RuntimeError("adapter train_step did not return metrics")
-                    record = {"step": step, **{str(key): float(value) for key, value in observed.items()}}
-                    evaluation_interval = int(config.get("evaluation_interval", total_steps))
-                    evaluated_now = validation_handle is not None and (
-                        step % evaluation_interval == 0 or step == total_steps
-                    )
-                    if evaluated_now:
-                        validation_batch = []
-                        for _ in range(int(config.get("batch_size", 1))):
-                            line = validation_handle.readline()
-                            if not line:
-                                validation_handle.seek(0)
-                                line = validation_handle.readline()
-                            if not line:
-                                raise BlockedJob("BLOCKED_INPUTS", "validation dataset is empty")
-                            validation_batch.append(json.loads(line))
-                        evaluated = adapter.evaluate(validation_batch)
-                        if not isinstance(evaluated, Mapping):
-                            raise RuntimeError("adapter evaluate did not return metrics")
-                        record.update({str(key): float(value) for key, value in evaluated.items()})
-                    record["seconds_per_step"] = time.perf_counter() - started
-                    metrics.append(run_id, record)
-                    last = {"last_step": step, **record}
-
-                    final_step = step_offset + total_steps
-                    checkpoint_now = step % checkpoint_interval == 0 and step < final_step
-                    if checkpoint_now:
-                        checkpoint = self._save_checkpoint(settings, adapter, config, step=step, final=False)
+            for local_step in range(1, total_steps + 1):
+                completed_position = dataset_position + (local_step - 1) * batch_size
+                if callable(should_cancel) and (local_step == 1 or local_step % 10 == 0) and should_cancel():
+                    completed_step = step_offset + local_step - 1
+                    if completed_step > step_offset:
+                        checkpoint = self._save_checkpoint(
+                            settings,
+                            adapter,
+                            config,
+                            step=completed_step,
+                            final=False,
+                            dataset_position=completed_position,
+                        )
                         self._sync_checkpoint_best_effort(settings, run_id, checkpoint)
+                    raise CancelledJob(f"operator requested stop at completed step {completed_step}")
 
-                    # Telemetry is deliberately non-fatal. Local metrics/checkpoints are authoritative while offline.
-                    if step % 25 == 0 or evaluated_now or checkpoint_now or step == total_steps:
-                        try:
-                            on_metric(record)
-                        except Exception:
-                            pass
+                step = step_offset + local_step
+                offset = dataset_position + (local_step - 1) * batch_size
+                indices = order[offset : offset + batch_size]
+                batch = [rows[index] for index in indices]
+                started = time.perf_counter()
+                observed = adapter.train_step(batch)
+                if not isinstance(observed, Mapping):
+                    raise RuntimeError("adapter train_step did not return metrics")
+                current_position = dataset_position + local_step * batch_size
+                record: dict[str, Any] = {
+                    "step": step,
+                    **{str(key): float(value) for key, value in observed.items()},
+                    "dataset_epoch": dataset_epoch,
+                    "dataset_position": current_position,
+                    "examples_seen_this_epoch": current_position,
+                }
+                evaluated_now = bool(validation_rows) and (
+                    local_step % evaluation_interval == 0 or local_step == total_steps
+                )
+                if evaluated_now:
+                    record.update(aggregate_validation())
+                record["seconds_per_step"] = time.perf_counter() - started
+                metrics.append(run_id, record)
+                last = {"last_step": step, **record}
+
+                final_step = step_offset + total_steps
+                checkpoint_now = local_step % checkpoint_interval == 0 and step < final_step
+                if checkpoint_now:
+                    checkpoint = self._save_checkpoint(
+                        settings,
+                        adapter,
+                        config,
+                        step=step,
+                        final=False,
+                        dataset_position=current_position,
+                    )
+                    self._sync_checkpoint_best_effort(settings, run_id, checkpoint)
+
+                if local_step % 25 == 0 or evaluated_now or checkpoint_now or local_step == total_steps:
+                    try:
+                        on_metric(record)
+                    except Exception:
+                        pass
 
             final_step = step_offset + total_steps
-            checkpoint = self._save_checkpoint(settings, adapter, config, step=final_step, final=True)
+            final_position = dataset_position + total_steps * batch_size
+            checkpoint = self._save_checkpoint(
+                settings,
+                adapter,
+                config,
+                step=final_step,
+                final=True,
+                dataset_position=final_position,
+            )
             self._sync_checkpoint_best_effort(settings, run_id, checkpoint)
             self._flush_pending_sync(settings, run_id)
             controller.complete(actual_metrics=last)
@@ -1188,9 +1334,6 @@ class LocalWorker:
             if controller.status().get("status") == "running":
                 controller.fail(actual_metrics=last, failures=[str(sanitize_remote_value(exc))])
             raise
-        finally:
-            if validation_handle is not None:
-                validation_handle.close()
 
     def _save_checkpoint(
         self,

@@ -417,6 +417,8 @@ def test_resume_training_skips_consumed_rows_and_preserves_absolute_step(tmp_pat
             "batch_size": 1,
             "resume_step": 2,
             "dataset_position": 2,
+            "dataset_epoch": 0,
+            "shuffle_seed": 17,
             "checkpoint_interval": 50,
         },
         dataset,
@@ -426,7 +428,10 @@ def test_resume_training_skips_consumed_rows_and_preserves_absolute_step(tmp_pat
     )
 
     assert result["step"] == 3
-    assert adapter.batches[0][0]["messages"][0]["content"] == "2"
+    import random
+    order = list(range(3))
+    random.Random(17).shuffle(order)
+    assert adapter.batches[0][0]["messages"][0]["content"] == str(order[2])
     manifest = json.loads(
         (settings.lab_root / "runs" / "resume-run" / "checkpoint-final" / "CHECKPOINT_MANIFEST.json").read_text()
     )

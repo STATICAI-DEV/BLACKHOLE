@@ -12,6 +12,7 @@ from torch import nn
 from torch.nn import functional as F
 
 VARIANT = "STATIC-0T-STE-v1"
+TRAINING_OBJECTIVE = "assistant-response-only-v2"
 SOURCE_ARCHIVE_SHA256 = "fbc24587333b2f0303dd7e8ee6ada0fb7fb64760e732b34e5035fcbf5bb9e331"
 SOURCE_MODEL_SHA256 = "f464f66fa2c6201d1fea209bdfe0ce0d27a90af268d260107359e72e17318355"
 
@@ -252,9 +253,11 @@ class Static0TAdapter:
             "config": asdict(self.config),
             "source_archive_sha256": SOURCE_ARCHIVE_SHA256,
             "source_model_sha256": SOURCE_MODEL_SHA256,
+            "training_objective": TRAINING_OBJECTIVE,
         }
 
     def _tensors(self, batch: Any, *, training: bool) -> tuple[torch.Tensor, torch.Tensor]:
+        """Build causal byte tensors while supervising only the assistant response and end marker."""
         if not isinstance(batch, list) or not batch:
             raise ValueError("batch must contain conversation rows")
         inputs = torch.zeros((len(batch), self.config.context), dtype=torch.long)
@@ -271,21 +274,25 @@ class Static0TAdapter:
             answer = messages[1].get("content")
             if not isinstance(prompt, str) or not prompt.strip() or not isinstance(answer, str) or not answer.strip():
                 raise ValueError("user and assistant content must be non-empty text")
-            payload = f"\n[USER]\n{prompt.strip()}\n[STATIC]\n{answer.strip()}\n[END]\n".encode("utf-8")
+
+            prefix = f"\n[USER]\n{prompt.strip()}\n[STATIC]\n".encode("utf-8")
+            completion = f"{answer.strip()}\n[END]\n".encode("utf-8")
+            payload = prefix + completion
             if len(payload) < 2:
                 raise ValueError("conversation is too short")
             if len(payload) > self.config.context + 1:
-                maximum = len(payload) - self.config.context - 1
-                start = (
-                    int(torch.randint(0, maximum + 1, (1,), generator=self._data_generator).item())
-                    if training
-                    else 0
+                raise ValueError(
+                    "conversation exceeds STATIC-0T context; prepare a shorter question/answer row instead of truncating"
                 )
-                payload = payload[start : start + self.config.context + 1]
+
             values = torch.tensor(list(payload), dtype=torch.long)
-            length = min(self.config.context, len(values) - 1)
+            length = len(values) - 1
             inputs[index, :length] = values[:length]
-            targets[index, :length] = values[1 : length + 1]
+            shifted = values[1 : length + 1]
+            supervised_start = max(0, len(prefix) - 1)
+            if supervised_start >= length:
+                raise ValueError("assistant response has no supervised target bytes")
+            targets[index, supervised_start:length] = shifted[supervised_start:length]
         return inputs.to(self.device), targets.to(self.device)
 
     def begin_accumulation(self) -> None:

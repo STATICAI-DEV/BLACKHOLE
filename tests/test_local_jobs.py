@@ -33,7 +33,7 @@ def _dataset(settings) -> dict[str, object]:
             "role": "chat",
             "split": "train",
             "language": "en",
-            "rows": 1,
+            "rows": 10,
         }
     )
 

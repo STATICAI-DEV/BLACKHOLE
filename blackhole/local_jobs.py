@@ -39,6 +39,10 @@ _ALLOWED_CONFIG = {
     "resume_checkpoint_uri",
     "resume_step",
     "dataset_position",
+    "dataset_epoch",
+    "shuffle_seed",
+    "training_recipe_version",
+    "validation_max_rows",
 }
 _COHORT_CONFIG = {
     "execution_target",
@@ -54,6 +58,9 @@ _COHORT_CONFIG = {
     "evaluation_interval",
     "shuffle_seed",
     "dataset_position",
+    "dataset_epoch",
+    "training_recipe_version",
+    "validation_max_rows",
 }
 _EVALUATION_CONFIG = {
     "execution_target",
@@ -137,6 +144,37 @@ class LocalJobQueue:
         if not isinstance(batch_size, int) or isinstance(batch_size, bool) or not 1 <= batch_size <= 65_536:
             raise ValueError("batch_size must be an integer between 1 and 65536")
         dataset = self.datasets.verify_persisted(dataset_manifest)
+        rows = int(dataset.get("rows") or 0)
+        dataset_position = record.get("dataset_position", 0)
+        dataset_epoch = record.get("dataset_epoch", 0)
+        shuffle_seed = record.get("shuffle_seed", record.get("seed", 1234))
+        validation_max_rows = record.get("validation_max_rows", 256)
+        recipe = record.get("training_recipe_version", "assistant-response-v2")
+        if not isinstance(dataset_position, int) or isinstance(dataset_position, bool) or dataset_position < 0:
+            raise ValueError("dataset_position must be a non-negative integer")
+        if not isinstance(dataset_epoch, int) or isinstance(dataset_epoch, bool) or dataset_epoch < 0:
+            raise ValueError("dataset_epoch must be a non-negative integer")
+        if not isinstance(shuffle_seed, int) or isinstance(shuffle_seed, bool) or shuffle_seed < 0:
+            raise ValueError("shuffle_seed must be a non-negative integer")
+        if (
+            not isinstance(validation_max_rows, int)
+            or isinstance(validation_max_rows, bool)
+            or not 1 <= validation_max_rows <= 100_000
+        ):
+            raise ValueError("validation_max_rows must be an integer between 1 and 100000")
+        if recipe != "assistant-response-v2":
+            raise ValueError("training_recipe_version must be assistant-response-v2")
+        required = steps * batch_size
+        if rows and dataset_position + required > rows:
+            raise ValueError(
+                f"training requires {required} examples from position {dataset_position}, "
+                f"but approved dataset has only {rows} rows"
+            )
+        record["dataset_position"] = dataset_position
+        record["dataset_epoch"] = dataset_epoch
+        record["shuffle_seed"] = shuffle_seed
+        record["validation_max_rows"] = validation_max_rows
+        record["training_recipe_version"] = recipe
 
         job_id = "local-" + uuid.uuid4().hex
         now = _utc_now()
@@ -248,8 +286,24 @@ class LocalJobQueue:
         shuffle_seed = record.get("shuffle_seed", 1234)
         if not isinstance(shuffle_seed, int) or isinstance(shuffle_seed, bool) or shuffle_seed < 0:
             raise ValueError("shuffle_seed must be a non-negative integer")
+        dataset_epoch = record.get("dataset_epoch", 0)
+        validation_max_rows = record.get("validation_max_rows", 256)
+        recipe = record.get("training_recipe_version", "assistant-response-v2")
+        if not isinstance(dataset_epoch, int) or isinstance(dataset_epoch, bool) or dataset_epoch < 0:
+            raise ValueError("dataset_epoch must be a non-negative integer")
+        if (
+            not isinstance(validation_max_rows, int)
+            or isinstance(validation_max_rows, bool)
+            or not 1 <= validation_max_rows <= 100_000
+        ):
+            raise ValueError("validation_max_rows must be an integer between 1 and 100000")
+        if recipe != "assistant-response-v2":
+            raise ValueError("training_recipe_version must be assistant-response-v2")
         record["shuffle_seed"] = shuffle_seed
         record["dataset_position"] = start
+        record["dataset_epoch"] = dataset_epoch
+        record["validation_max_rows"] = validation_max_rows
+        record["training_recipe_version"] = recipe
         record["gradient_accumulation_steps"] = accumulation
         job_id = "local-" + uuid.uuid4().hex
         now = _utc_now()
@@ -305,7 +359,7 @@ class LocalJobQueue:
             value = record.get(key)
             if not isinstance(value, str) or not _ID.fullmatch(value):
                 raise ValueError(f"{key} must contain only safe identifier characters")
-        if record["prompt_set_version"] != "english-heldout-v1":
+        if record["prompt_set_version"] not in {"english-heldout-v1", "english-heldout-v2"}:
             raise ValueError("unsupported prompt_set_version")
         seed = record.get("seed", 1234)
         top_k = record.get("top_k", 20)
@@ -378,14 +432,18 @@ class LocalJobQueue:
             raise RuntimeError("RESUME_UNVERIFIED: source RUN_CONFIG.json is unavailable") from exc
         original_steps = source_config.get("train_steps")
         completed_step = manifest.get("step")
+        source_step_offset = source_config.get("resume_step", 0)
         if (
             not isinstance(original_steps, int)
             or isinstance(original_steps, bool)
             or not isinstance(completed_step, int)
             or isinstance(completed_step, bool)
+            or not isinstance(source_step_offset, int)
+            or isinstance(source_step_offset, bool)
         ):
             raise RuntimeError("RESUME_UNVERIFIED: training step evidence is invalid")
-        remaining_steps = original_steps - completed_step
+        completed_local_steps = completed_step - source_step_offset
+        remaining_steps = original_steps - completed_local_steps
         if remaining_steps <= 0:
             raise RuntimeError("RESUME_NOT_NEEDED: checkpoint already reached the configured training steps")
         try:
@@ -407,7 +465,11 @@ class LocalJobQueue:
             "evaluation_interval": int(source_config.get("evaluation_interval", 10)),
             "resume_checkpoint_uri": f"hf://buckets/STATICAI/BLACKHOLE/LAB/{relative}",
             "resume_step": completed_step,
-            "dataset_position": int(manifest.get("dataset_position", completed_step * int(source_config.get("batch_size", 1)))),
+            "dataset_position": int(manifest.get("dataset_position", completed_local_steps * int(source_config.get("batch_size", 1)))),
+            "dataset_epoch": int(source_config.get("dataset_epoch", 0)),
+            "shuffle_seed": int(source_config.get("shuffle_seed", source_config.get("seed", 1234))),
+            "validation_max_rows": int(source_config.get("validation_max_rows", 256)),
+            "training_recipe_version": str(source_config.get("training_recipe_version", "assistant-response-v2")),
         }
         return self.enqueue(record, dataset_manifest, owner_authorized=True)
 

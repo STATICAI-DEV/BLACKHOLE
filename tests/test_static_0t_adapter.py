@@ -70,7 +70,7 @@ def test_adapter_trains_evaluates_and_saves_resumable_artifacts(tmp_path: Path) 
 
     adapter = Static0TAdapter(
         device="cpu",
-        config=StaticConfig(width=16, layers=1, context=32),
+        config=StaticConfig(width=16, layers=1, context=128),
         seed=7,
     )
     before = adapter.model.embedding.weight.detach().clone()
@@ -86,7 +86,7 @@ def test_adapter_trains_evaluates_and_saves_resumable_artifacts(tmp_path: Path) 
 
     restored = Static0TAdapter(
         device="cpu",
-        config=StaticConfig(width=16, layers=1, context=32),
+        config=StaticConfig(width=16, layers=1, context=128),
         seed=99,
     )
     torch.manual_seed(999)
@@ -137,3 +137,35 @@ def test_adapter_reconfigures_from_the_claimed_training_contract() -> None:
 
     with pytest.raises(ValueError, match="context_length"):
         first.configure_for_training({"seed": 42, "learning_rate": 0.002, "context_length": 15})
+
+
+def test_response_only_objective_masks_user_prompt_and_static_marker() -> None:
+    import torch
+
+    from blackhole.adapters.static_0t import Static0TAdapter, StaticConfig
+
+    adapter = Static0TAdapter(device="cpu", config=StaticConfig(width=8, layers=1, context=128))
+    row = [{"messages": [
+        {"role": "user", "content": "Name a fruit."},
+        {"role": "assistant", "content": "Apple."},
+    ]}]
+    inputs, targets = adapter._tensors(row, training=True)
+    prefix = "\n[USER]\nName a fruit.\n[STATIC]\n".encode("utf-8")
+    supervised_start = len(prefix) - 1
+
+    assert torch.all(targets[0, :supervised_start] == -100)
+    assert torch.all(targets[0, supervised_start:supervised_start + len("Apple.".encode("utf-8"))] != -100)
+    assert int((targets != -100).sum()) == len("Apple.\n[END]\n".encode("utf-8"))
+
+
+def test_adapter_rejects_overlong_rows_instead_of_randomly_truncating_them() -> None:
+    import pytest
+
+    from blackhole.adapters.static_0t import Static0TAdapter, StaticConfig
+
+    adapter = Static0TAdapter(device="cpu", config=StaticConfig(width=8, layers=1, context=64))
+    with pytest.raises(ValueError, match="shorter question/answer"):
+        adapter.train_step([{"messages": [
+            {"role": "user", "content": "Q" * 40},
+            {"role": "assistant", "content": "A" * 40},
+        ]}])
