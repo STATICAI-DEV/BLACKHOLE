@@ -276,7 +276,7 @@ def build_app(
                 "evaluation_id": f"eval-{manifest['run_id']}-{uuid.uuid4().hex[:8]}",
                 "model_adapter": manifest["model_adapter"],
                 "checkpoint_run_id": manifest["run_id"],
-                "prompt_set_version": "english-heldout-v1",
+                "prompt_set_version": "english-heldout-v2",
                 "seed": 1234,
                 "temperature": 0.2,
                 "top_k": 20,
