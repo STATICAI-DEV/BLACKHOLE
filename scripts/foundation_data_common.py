@@ -23,6 +23,7 @@ INSTRUCTION_ROOT = ROOT / "instruction"
 BUSINESS_ROOT = ROOT / "business"
 RELATIONSHIP_ROOT = ROOT / "relationship"
 BROWSER_ROOT = ROOT / "browser_agent"
+EXECUTIVE_ROOT = ROOT / "executive_persona"
 JUDGMENT_ROOT = ROOT / "judgment"
 PROVENANCE_ROOT = ROOT / "provenance"
 VOCAB_SIZE = 32_000
@@ -113,7 +114,7 @@ SOURCES = {
     "finqa_business": {
         "repo": "bevaya/FinQA",
         "config": "default", "split": "train",
-        "license": "cc-by-4.0", "language": "en",
+        "license": "mit", "language": "en",
     },
     "persona_chat": {
         "repo": "google/Synthetic-Persona-Chat",

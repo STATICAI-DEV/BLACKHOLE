@@ -52,6 +52,8 @@ required = {
     "relationship_val": ROOT / "relationship" / "validation.jsonl",
     "browser": ROOT / "browser_agent" / "train.jsonl",
     "browser_val": ROOT / "browser_agent" / "validation.jsonl",
+    "executive": ROOT / "executive_persona" / "train.jsonl",
+    "executive_val": ROOT / "executive_persona" / "validation.jsonl",
     "judgment": ROOT / "judgment" / "train.jsonl",
     "judgment_val": ROOT / "judgment" / "validation.jsonl",
     "preference": ROOT / "judgment" / "preference" / "train.jsonl",
@@ -63,6 +65,7 @@ required = {
     "business_prov": ROOT / "provenance" / "business_v1.json",
     "relationship_prov": ROOT / "provenance" / "relationship_v1.json",
     "browser_prov": ROOT / "provenance" / "browser_v1.json",
+    "executive_prov": ROOT / "provenance" / "executive_v1.json",
     "judgment_prov": ROOT / "provenance" / "judgment_v1.json",
     "preference_prov": ROOT / "provenance" / "preference_v1.json",
     "judgment_benchmark": ROOT / "evaluations" / "judgment_v1" / "rewardbench2.jsonl",
@@ -143,16 +146,16 @@ stage_specs = [
     },
     {
         "name": "business",
-        "dataset_id": "STATICAI/STATIC-BUSINESS-SFT-V1",
+        "dataset_id": "STATICAI/STATIC-BUSINESS-SFT-V2",
         "role": "business",
         "recipe": "business-sft-v1",
-        "license": "mixed-cc-by-4.0-staticai-proprietary",
+        "license": "mixed-mit-staticai-proprietary",
         "train": required["business"],
         "validation": required["business_val"],
         "provenance": required["business_prov"],
-        "remote": "static_business_sft_v1",
+        "remote": "static_business_sft_v2",
         "sources": [
-            "ibm-research/finqa",
+            "bevaya/FinQA",
             "STATICAI authored business decision curriculum",
         ],
     },
@@ -184,6 +187,20 @@ stage_specs = [
         "sources": [
             "saital/browser-agent-phase1-sft-reasoning-action",
             "jxg25/EntiWeave",
+        ],
+    },
+    {
+        "name": "executive",
+        "dataset_id": "STATICAI/STATIC-EXECUTIVE-PERSONA-SFT-V1",
+        "role": "executive_persona",
+        "recipe": "executive-persona-sft-v1",
+        "license": "staticai-proprietary",
+        "train": required["executive"],
+        "validation": required["executive_val"],
+        "provenance": required["executive_prov"],
+        "remote": "static_executive_persona_sft_v1",
+        "sources": [
+            "STATICAI authored ENTJ-style executive-agent curriculum",
         ],
     },
     {
@@ -319,7 +336,7 @@ if sha256(required["software_benchmark_answers"]) != software_provenance.get("an
     raise RuntimeError("SOFTWARE_BENCHMARK_ANSWER_HASH_MISMATCH")
 
 summary = {
-    "schema_version": "staticai.foundation-curriculum.v3",
+    "schema_version": "staticai.foundation-curriculum.v4",
     "tokenizer_uri": tokenizer_uri,
     "tokenizer_sha256": tokenizer_sha,
     "stages": published,
@@ -346,5 +363,5 @@ summary = {
 }
 summary_path = ROOT / "CURRICULUM_MANIFEST.json"
 summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-upload(fs, summary_path, f"{BUCKET}/manifests/static_foundation_curriculum_v3.json")
+upload(fs, summary_path, f"{BUCKET}/manifests/static_foundation_curriculum_v4.json")
 print(json.dumps({"status": "CURRICULUM_PUBLISHED", "summary": summary}, default=str), flush=True)

@@ -131,13 +131,15 @@ if len(trids)!=len(train) or len(vids)!=len(val) or trids&vids: raise RuntimeErr
 
 tn,tsha=write_jsonl(BUSINESS_ROOT/"train.jsonl",train)
 vn,vsha=write_jsonl(BUSINESS_ROOT/"validation.jsonl",val)
-prov={"schema_version":"staticai.business-sft.v1","dataset_id":"STATICAI/STATIC-BUSINESS-SFT-V1",
-      "recipe":"business-sft-v1","license":"mixed-cc-by-4.0-staticai-proprietary",
+prov={"schema_version":"staticai.business-sft.v2","dataset_id":"STATICAI/STATIC-BUSINESS-SFT-V2",
+      "recipe":"business-sft-v1","license":"mixed-mit-staticai-proprietary",
       "language_policy":"English-only business, commerce, finance and executive decision training.",
       "train_rows":tn,"validation_rows":vn,"train_sha256":tsha,"validation_sha256":vsha,
       "mixture":{"static_business":{"train":AUTH_TRAIN,"validation":AUTH_VAL},
                  "finqa":{"train":FINQA_TRAIN,"validation":FINQA_VAL}},
       "domains":list(DOMAINS)+["financial_reasoning"],
+      "sources":{"financial_reasoning":{"repo":"bevaya/FinQA","license":"mit"},
+                 "executive_decisions":{"repo":"STATICAI proprietary business decision curriculum","license":"STATICAI-proprietary"}},
       "evidence":{"finqa_scanned":scanned,"finqa_rejected_context":rejected}}
 pp=save_provenance("business_v1",prov)
 print(json.dumps({"status":"BUSINESS_READY","provenance":str(pp),**prov}),flush=True)

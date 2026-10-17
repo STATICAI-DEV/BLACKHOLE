@@ -14,6 +14,7 @@ def test_trio_is_controlled_except_for_initialization_seed() -> None:
         "business",
         "relationship",
         "browser",
+        "executive",
         "judgment",
         "preference",
     )

@@ -7,9 +7,10 @@ Stages per model:
   4. general instruction SFT from stage-3 weights with a fresh optimizer
   5. business/commerce SFT from stage-4 weights with a fresh optimizer
   6. relationship/persona SFT from stage-5 weights with a fresh optimizer
-  7. browser-agent SFT from stage-6 weights with a fresh optimizer
-  8. judgment/critique SFT from stage-7 weights with a fresh optimizer
-  9. direct preference optimization from stage-8 weights against a frozen stage-start reference
+  7. browser-agent/research SFT from stage-6 weights with a fresh optimizer
+  8. ENTJ-style executive persona SFT from stage-7 weights with a fresh optimizer
+  9. judgment/critique SFT from stage-8 weights with a fresh optimizer
+ 10. direct preference optimization from stage-9 weights against a frozen stage-start reference
 
 All compute runs on the authenticated local CUDA worker. This script is intentionally
 sequential because three 147M training states do not belong in an 8 GB laptop GPU at once.
@@ -31,7 +32,7 @@ truststore.inject_into_ssl()
 
 OWNER = "STATICAI"
 SPACE = "STATICAI/BLACKHOLE"
-CURRICULUM_URI = "hf://buckets/STATICAI/BLACKHOLE/DATA/manifests/static_foundation_curriculum_v3.json"
+CURRICULUM_URI = "hf://buckets/STATICAI/BLACKHOLE/DATA/manifests/static_foundation_curriculum_v4.json"
 WORKER = Path(r"D:\05_NETWORK\Infrastructure\Local\BLACKHOLE\scripts\local_gpu_worker.py")
 OUT = Path(r"D:\04_BLACKHOLE\Training")
 PYTHON = Path(sys.executable)
@@ -106,6 +107,15 @@ STAGE_CONFIG = {
         "checkpoint_interval": 750,
         "evaluation_interval": 375,
     },
+    "executive": {
+        "recipe": "executive-persona-sft-v1",
+        "learning_rate": 1.5e-5,
+        "weight_decay": 0.01,
+        "warmup_steps": 50,
+        "min_lr_ratio": 0.1,
+        "checkpoint_interval": 500,
+        "evaluation_interval": 250,
+    },
     "judgment": {
         "recipe": "judgment-sft-v1",
         "learning_rate": 3e-5,
@@ -135,7 +145,7 @@ EFFECTIVE_BATCH = MICRO_BATCH * ACCUMULATION
 CONTEXT = 2048
 VALIDATION_ROWS = 128
 DATA_ORDER_SEED = 20_261_017
-STAGE_ORDER = ("pretrain", "reasoning", "software", "instruction", "business", "relationship", "browser", "judgment", "preference")
+STAGE_ORDER = ("pretrain", "reasoning", "software", "instruction", "business", "relationship", "browser", "executive", "judgment", "preference")
 
 
 def save(path: Path, payload: dict[str, Any]) -> None:

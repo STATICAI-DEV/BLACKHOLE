@@ -244,3 +244,11 @@ See [LICENSE.txt](LICENSE.txt).
 ### V3 controlled trio
 
 The production experiment trains STATIC-T, STATIC-X and STATIC-K on an identical nine-stage curriculum: language/code/math pretraining, reasoning, software engineering, instruction/chat, business/commerce, relationship/persona conversation, browser-agent use, judgment, and preference optimization. The data-order seed is shared across all three models; only initialization seeds differ. V3 contains 342,056 training rows, equivalent to 42,757 optimizer steps per model at effective batch 8.
+
+## Controlled executive-agent generation
+
+Fresh STATIC-T, STATIC-X and STATIC-K are a controlled comparison: identical architecture, dataset hashes, curriculum order, hyperparameters, local CUDA environment and deterministic data-order seed. Their only intentional training difference is the model initialization seed.
+
+The V4 curriculum trains ten capability stages in order: foundation language/code/math, reasoning, software engineering, general instruction/chat, business/commerce, relationship/persona continuity, browser/research, ENTJ-style executive behaviour, judgment/critique, and final DPO preference alignment.
+
+The executive stage is deliberately small and proprietary. It teaches strategic prioritisation, commercial judgment, evidence-over-status, decisive execution, calibrated uncertainty, delegation, research discipline, engineering leadership and accurate execution reporting. Judgment and preference alignment run after personality shaping so confidence never outranks evidence.
