@@ -164,3 +164,31 @@ V3 training rows: 342,056. At effective batch 8 this is 42,757 optimizer steps p
 The V3 business corpus contains 16,000 training rows. The relationship corpus contains 12,000 training rows, including 4,000 unique STATICAI-authored relationship situations and 8,000 persona-consistent multi-turn conversations. The browser/research corpus contains 8,000 training rows: 6,000 MIT-licensed BrowserGym reasoning/action examples plus 2,000 CC-BY-4.0 EntiWeave source-grounded research examples.
 
 The experiment must never vary dataset order by model seed. DATA_ORDER_SEED is fixed at 20,261,017; only the initialization seeds differ.
+
+
+## Foundation Curriculum V5
+
+V5 preserves the controlled STATIC-T/X/K comparison while extending the curriculum to twelve stages:
+
+1. language/code/math causal foundation
+2. reasoning
+3. software engineering
+4. general instruction/chat
+5. business/commerce/operations
+6. corporate finance and financial-statement reasoning
+7. normal relationship/persona continuity with context-gated adult social escalation
+8. browser and source-grounded research
+9. ENTJ-style executive behaviour
+10. ethics and business/professional integrity
+11. judgment/critique
+12. DPO preference alignment
+
+### Adult-context policy
+
+Normal adult conversation is the persistent default. Relationship, affection, humour and ordinary flirting do not implicitly activate sexualized behaviour. A more intimate/adult conversational tone may activate only after clear adult user initiation in the current context. The model follows the user's pace and immediately de-escalates when the user changes direction. Adult tone is contextual state, not a permanent personality attribute and must not bleed into business, engineering, research or unrelated conversation.
+
+### Finance and ethics
+
+Finance is separate from business strategy. The Finance stage combines FinQA financial-report reasoning with STATICAI-authored corporate-finance cases covering margins, working capital, debt service, break-even, capital budgeting, valuation, cash conversion, variance analysis and portfolio risk.
+
+Ethics precedes judgment and preference alignment. It combines the MIT-licensed Hendrycks ETHICS dimensions (commonsense morality, duties, justice, consequences and virtue) with proprietary business/professional ethics covering conflicts of interest, disclosure, customer harm, employee fairness, privacy, compliance, fiduciary duty and incentive externalities. It teaches reasoned discrimination and stakeholder/consequence analysis rather than blind rule-following.

@@ -210,9 +210,11 @@ def authored(domain: str, idx: int) -> tuple[str,str]:
             "Negotiate scope, mitigation or price rather than manufacturing consent through omission."
         )
     elif domain=="customer_harm":
+        affected=r.randint(25,50_000)
+        severity=("minor but repeated","material financial","serious safety","privacy","service-access")[idx % 5]
         prompt=(
-            f"A profitable feature increases revenue but internal testing suggests about a {probability}% chance of causing material customer harm in a foreseeable use case. "
-            "What should management do?"
+            f"A profitable feature increases revenue but internal testing suggests about a {probability}% chance of {severity} customer harm "
+            f"across an estimated {affected:,} affected users in a foreseeable use case. What should management do?"
         )
         answer=(
             "Do not treat expected revenue as a license to externalize foreseeable harm. Quantify severity and probability, pause or constrain deployment where necessary, design mitigations, inform affected users, and require evidence that residual risk is acceptable. "
@@ -252,8 +254,11 @@ def authored(domain: str, idx: int) -> tuple[str,str]:
             "Document the assumptions, invite challenge, consider material stakeholder and legal constraints, and change course if better evidence changes the ranking."
         )
     elif domain=="incentives_and_externalities":
+        affected=r.randint(50,25_000)
+        channel=("retail","enterprise","partner","online","inside-sales")[idx % 5]
         prompt=(
-            f"A bonus plan increases sales but creates a {probability}% measured rise in unsuitable customer purchases. The sales team is hitting every numeric target. What is wrong with the system?"
+            f"A {channel} bonus plan increases sales but creates a {probability}% measured rise in unsuitable customer purchases across about {affected:,} transactions. "
+            "The sales team is hitting every numeric target. What is wrong with the system?"
         )
         answer=(
             "The incentive is rewarding the metric while exporting the cost to customers and the future business. Redesign compensation around durable value, suitability, retention and quality, investigate affected cases, and remove rewards produced by harmful gaming. "
