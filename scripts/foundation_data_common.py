@@ -20,6 +20,9 @@ PRETRAIN_ROOT = ROOT / "pretrain"
 REASONING_ROOT = ROOT / "reasoning"
 SOFTWARE_ROOT = ROOT / "software_engineering"
 INSTRUCTION_ROOT = ROOT / "instruction"
+BUSINESS_ROOT = ROOT / "business"
+RELATIONSHIP_ROOT = ROOT / "relationship"
+BROWSER_ROOT = ROOT / "browser_agent"
 JUDGMENT_ROOT = ROOT / "judgment"
 PROVENANCE_ROOT = ROOT / "provenance"
 VOCAB_SIZE = 32_000
@@ -106,6 +109,26 @@ SOURCES = {
         "repo": "open-r1/OpenR1-Math-220k",
         "config": "default", "split": "train",
         "license": "apache-2.0", "language": "en",
+    },
+    "finqa_business": {
+        "repo": "bevaya/FinQA",
+        "config": "default", "split": "train",
+        "license": "cc-by-4.0", "language": "en",
+    },
+    "persona_chat": {
+        "repo": "google/Synthetic-Persona-Chat",
+        "config": "default", "split": "train",
+        "license": "cc-by-4.0", "language": "en",
+    },
+    "browser_sft_train": {
+        "repo": "saital/browser-agent-phase1-sft-reasoning-action",
+        "config": "default", "split": "train",
+        "license": "mit", "language": "en",
+    },
+    "browser_sft_val": {
+        "repo": "saital/browser-agent-phase1-sft-reasoning-action",
+        "config": "default", "split": "val",
+        "license": "mit", "language": "en",
     },
 }
 

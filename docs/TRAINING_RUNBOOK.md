@@ -141,3 +141,26 @@ This local profile exists to train and validate the STATIC architecture on the R
 The upstream SWE-smith `patch` field is the bug-injection diff, not the repair. BLACKHOLE never trains directly on that field. During preparation, the unified diff is deterministically inverted and the inverse is used as the assistant repair target. Binary patches are rejected. SWE-Gym follows SWE-bench semantics and its forward reference patch is retained unchanged.
 
 This distinction is regression-tested because reversing it would train a coding model to introduce the reported bug instead of fixing it.
+
+
+## Controlled three-model capability curriculum V3
+
+BLACKHOLE trains exactly three fresh models: STATIC-T, STATIC-X and STATIC-K. They use the same architecture, the same nine dataset artifacts, the same hashes, the same stage order, the same data shuffle seed, the same optimizer/hyperparameter schedule, the same validation policy and the same local CUDA worker. The only intentional experimental variable is the model initialization seed.
+
+Stage order:
+
+1. causal pretraining - English, code and mathematics
+2. reasoning mid-training - difficult complete reasoning traces
+3. software-engineering SFT - repository repair
+4. general instruction SFT - chat and code instruction following
+5. business SFT - commerce, finance, pricing, operations, unit economics and executive decisions
+6. relationship SFT - adult relationship conversation, persona continuity, boundaries, trust, affection and non-explicit flirting
+7. browser-agent SFT - BrowserGym page-state reasoning and executable browser actions
+8. judgment SFT - critique, comparison, error repair and principle-based judgment
+9. preference DPO - human preferences and verified correct-vs-wrong reasoning
+
+V3 training rows: 340,056. At effective batch 8 this is 42,507 optimizer steps per model for one complete pass.
+
+The V3 business corpus contains 16,000 training rows. The relationship corpus contains 12,000 training rows, including 4,000 unique STATICAI-authored relationship situations and 8,000 persona-consistent multi-turn conversations. The browser corpus contains 6,000 MIT-licensed BrowserGym reasoning/action rows.
+
+The experiment must never vary dataset order by model seed. DATA_ORDER_SEED is fixed at 20,261,017; only the initialization seeds differ.

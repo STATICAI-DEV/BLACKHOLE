@@ -5,8 +5,11 @@ Stages per model:
   2. reasoning mid-training from stage-1 weights with a fresh optimizer
   3. software-engineering SFT from stage-2 weights with a fresh optimizer
   4. general instruction SFT from stage-3 weights with a fresh optimizer
-  5. judgment/critique SFT from stage-4 weights with a fresh optimizer
-  6. direct preference optimization from stage-5 weights against a frozen stage-start reference
+  5. business/commerce SFT from stage-4 weights with a fresh optimizer
+  6. relationship/persona SFT from stage-5 weights with a fresh optimizer
+  7. browser-agent SFT from stage-6 weights with a fresh optimizer
+  8. judgment/critique SFT from stage-7 weights with a fresh optimizer
+  9. direct preference optimization from stage-8 weights against a frozen stage-start reference
 
 All compute runs on the authenticated local CUDA worker. This script is intentionally
 sequential because three 147M training states do not belong in an 8 GB laptop GPU at once.
@@ -28,7 +31,7 @@ truststore.inject_into_ssl()
 
 OWNER = "STATICAI"
 SPACE = "STATICAI/BLACKHOLE"
-CURRICULUM_URI = "hf://buckets/STATICAI/BLACKHOLE/DATA/manifests/static_foundation_curriculum_v2.json"
+CURRICULUM_URI = "hf://buckets/STATICAI/BLACKHOLE/DATA/manifests/static_foundation_curriculum_v3.json"
 WORKER = Path(r"D:\05_NETWORK\Infrastructure\Local\BLACKHOLE\scripts\local_gpu_worker.py")
 OUT = Path(r"D:\04_BLACKHOLE\Training")
 PYTHON = Path(sys.executable)
@@ -76,6 +79,33 @@ STAGE_CONFIG = {
         "checkpoint_interval": 2500,
         "evaluation_interval": 1000,
     },
+    "business": {
+        "recipe": "business-sft-v1",
+        "learning_rate": 3e-5,
+        "weight_decay": 0.01,
+        "warmup_steps": 100,
+        "min_lr_ratio": 0.1,
+        "checkpoint_interval": 1500,
+        "evaluation_interval": 750,
+    },
+    "relationship": {
+        "recipe": "relationship-sft-v1",
+        "learning_rate": 2e-5,
+        "weight_decay": 0.01,
+        "warmup_steps": 100,
+        "min_lr_ratio": 0.1,
+        "checkpoint_interval": 1500,
+        "evaluation_interval": 750,
+    },
+    "browser": {
+        "recipe": "browser-agent-sft-v1",
+        "learning_rate": 3e-5,
+        "weight_decay": 0.01,
+        "warmup_steps": 75,
+        "min_lr_ratio": 0.1,
+        "checkpoint_interval": 750,
+        "evaluation_interval": 375,
+    },
     "judgment": {
         "recipe": "judgment-sft-v1",
         "learning_rate": 3e-5,
@@ -104,6 +134,8 @@ ACCUMULATION = 4
 EFFECTIVE_BATCH = MICRO_BATCH * ACCUMULATION
 CONTEXT = 2048
 VALIDATION_ROWS = 128
+DATA_ORDER_SEED = 20_261_017
+STAGE_ORDER = ("pretrain", "reasoning", "software", "instruction", "business", "relationship", "browser", "judgment", "preference")
 
 
 def save(path: Path, payload: dict[str, Any]) -> None:
@@ -140,12 +172,12 @@ def main() -> None:
     fs = HfFileSystem(token=True)
     curriculum = read_json(fs, CURRICULUM_URI)
     stages = curriculum.get("stages")
-    expected_stages = {"pretrain", "reasoning", "software", "instruction", "judgment", "preference"}
+    expected_stages = set(STAGE_ORDER)
     if not isinstance(stages, dict) or set(stages) != expected_stages:
         raise RuntimeError("INVALID_CURRICULUM_MANIFEST")
 
     manifests: dict[str, dict[str, Any]] = {}
-    for stage_name in ("pretrain", "reasoning", "software", "instruction", "judgment", "preference"):
+    for stage_name in STAGE_ORDER:
         stage_info = stages[stage_name]
         manifest_uri = stage_info.get("manifest_uri")
         if not isinstance(manifest_uri, str):
@@ -170,7 +202,7 @@ def main() -> None:
         raise RuntimeError(f"RECEIPT_ALREADY_EXISTS: {receipt_path}")
 
     receipt: dict[str, Any] = {
-        "schema_version": "staticai.foundation-generation.v1",
+        "schema_version": "staticai.foundation-generation.v2",
         "owner": OWNER,
         "space": SPACE,
         "architecture": "STATIC-FOUNDATION-TERNARY-v1",
@@ -179,6 +211,14 @@ def main() -> None:
         "micro_batch": MICRO_BATCH,
         "gradient_accumulation": ACCUMULATION,
         "effective_batch": EFFECTIVE_BATCH,
+        "controlled_comparison": {
+            "same_architecture": True,
+            "same_dataset_hashes": True,
+            "same_stage_order": list(STAGE_ORDER),
+            "same_data_order_seed": DATA_ORDER_SEED,
+            "same_training_environment": True,
+            "intentional_difference": "model initialization seed only",
+        },
         "models": {},
         "created_at": datetime.now().astimezone().isoformat(),
         "state": "STARTING",
@@ -194,7 +234,7 @@ def main() -> None:
         previous_checkpoint = None
         global_step = 0
 
-        for stage_name in ("pretrain", "reasoning", "software", "instruction", "judgment", "preference"):
+        for stage_name in STAGE_ORDER:
             manifest = manifests[stage_name]
             stage_cfg = STAGE_CONFIG[stage_name]
             rows = int(manifest["rows"])
@@ -227,7 +267,7 @@ def main() -> None:
                 "validation_max_rows": VALIDATION_ROWS,
                 "dataset_position": 0,
                 "dataset_epoch": 0,
-                "shuffle_seed": seed,
+                "shuffle_seed": DATA_ORDER_SEED,
                 "training_recipe_version": stage_cfg["recipe"],
                 "resume_step": global_step,
                 "reset_optimizer_on_resume": previous_checkpoint is not None,

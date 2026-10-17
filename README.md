@@ -239,3 +239,8 @@ Source snapshot: `9534bd282ad1bb4ab16a9e1b128c297a6977a74d`
 ## License
 
 See [LICENSE.txt](LICENSE.txt).
+
+
+### V3 controlled trio
+
+The production experiment trains STATIC-T, STATIC-X and STATIC-K on an identical nine-stage curriculum: language/code/math pretraining, reasoning, software engineering, instruction/chat, business/commerce, relationship/persona conversation, browser-agent use, judgment, and preference optimization. The data-order seed is shared across all three models; only initialization seeds differ. V3 contains 340,056 training rows, equivalent to 42,507 optimizer steps per model at effective batch 8.

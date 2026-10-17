@@ -146,3 +146,29 @@ def test_foundation_dpo_checkpoint_persists_reference_and_validation_contract(tm
     validation = resumed.evaluate(batch)
     assert set(validation) >= {"val_loss", "dpo_loss", "preference_margin"}
     assert torch.isfinite(torch.tensor(validation["val_loss"]))
+
+
+def test_foundation_business_relationship_and_browser_recipes_train() -> None:
+    cases = {
+        "business-sft-v1": (
+            "A product has positive contribution margin. What should management verify before scaling?",
+            "Verify demand, retention, cash requirements, and operational capacity before scaling.",
+        ),
+        "relationship-sft-v1": (
+            "I need a quiet evening but I still care about us.",
+            "Understood. Take the space you need; we can reconnect without turning it into a conflict.",
+        ),
+        "browser-agent-sft-v1": (
+            "Browser task: find the account settings. Candidate: [button] Settings. Choose the next action.",
+            "[button] Settings -> CLICK",
+        ),
+    }
+    for recipe, (prompt, response) in cases.items():
+        adapter = small_adapter(recipe)
+        result = adapter.train_step([{
+            "messages": [
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": response},
+            ]
+        }])
+        assert torch.isfinite(torch.tensor(result["train_loss"]))

@@ -25,6 +25,9 @@ FOUNDATION_TRAINING_RECIPES = {
     "reasoning-mid-v1",
     "software-engineering-sft-v1",
     "instruction-sft-v1",
+    "business-sft-v1",
+    "relationship-sft-v1",
+    "browser-agent-sft-v1",
     "judgment-sft-v1",
     "preference-dpo-v1",
 }

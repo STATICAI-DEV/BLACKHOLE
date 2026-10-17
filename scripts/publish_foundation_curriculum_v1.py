@@ -46,6 +46,12 @@ required = {
     "software_val": ROOT / "software_engineering" / "validation.jsonl",
     "instruction": ROOT / "instruction" / "train.jsonl",
     "instruction_val": ROOT / "instruction" / "validation.jsonl",
+    "business": ROOT / "business" / "train.jsonl",
+    "business_val": ROOT / "business" / "validation.jsonl",
+    "relationship": ROOT / "relationship" / "train.jsonl",
+    "relationship_val": ROOT / "relationship" / "validation.jsonl",
+    "browser": ROOT / "browser_agent" / "train.jsonl",
+    "browser_val": ROOT / "browser_agent" / "validation.jsonl",
     "judgment": ROOT / "judgment" / "train.jsonl",
     "judgment_val": ROOT / "judgment" / "validation.jsonl",
     "preference": ROOT / "judgment" / "preference" / "train.jsonl",
@@ -54,6 +60,9 @@ required = {
     "reasoning_prov": ROOT / "provenance" / "reasoning_v1.json",
     "software_prov": ROOT / "provenance" / "software_v1.json",
     "instruction_prov": ROOT / "provenance" / "instruction_v1.json",
+    "business_prov": ROOT / "provenance" / "business_v1.json",
+    "relationship_prov": ROOT / "provenance" / "relationship_v1.json",
+    "browser_prov": ROOT / "provenance" / "browser_v1.json",
     "judgment_prov": ROOT / "provenance" / "judgment_v1.json",
     "preference_prov": ROOT / "provenance" / "preference_v1.json",
     "judgment_benchmark": ROOT / "evaluations" / "judgment_v1" / "rewardbench2.jsonl",
@@ -131,6 +140,48 @@ stage_specs = [
             "HuggingFaceH4/ultrachat_200k",
             "sahil2801/CodeAlpaca-20k",
         ],
+    },
+    {
+        "name": "business",
+        "dataset_id": "STATICAI/STATIC-BUSINESS-SFT-V1",
+        "role": "business",
+        "recipe": "business-sft-v1",
+        "license": "mixed-cc-by-4.0-staticai-proprietary",
+        "train": required["business"],
+        "validation": required["business_val"],
+        "provenance": required["business_prov"],
+        "remote": "static_business_sft_v1",
+        "sources": [
+            "ibm-research/finqa",
+            "STATICAI authored business decision curriculum",
+        ],
+    },
+    {
+        "name": "relationship",
+        "dataset_id": "STATICAI/STATIC-RELATIONSHIP-SFT-V2",
+        "role": "relationship",
+        "recipe": "relationship-sft-v1",
+        "license": "mixed-cc-by-4.0-staticai-proprietary",
+        "train": required["relationship"],
+        "validation": required["relationship_val"],
+        "provenance": required["relationship_prov"],
+        "remote": "static_relationship_sft_v2",
+        "sources": [
+            "google/Synthetic-Persona-Chat",
+            "STATICAI authored adult relationship conversation curriculum",
+        ],
+    },
+    {
+        "name": "browser",
+        "dataset_id": "STATICAI/STATIC-BROWSER-AGENT-SFT-V2",
+        "role": "browser_agent",
+        "recipe": "browser-agent-sft-v1",
+        "license": "mit",
+        "train": required["browser"],
+        "validation": required["browser_val"],
+        "provenance": required["browser_prov"],
+        "remote": "static_browser_agent_sft_v2",
+        "sources": ["saital/browser-agent-phase1-sft-reasoning-action"],
     },
     {
         "name": "judgment",
@@ -265,7 +316,7 @@ if sha256(required["software_benchmark_answers"]) != software_provenance.get("an
     raise RuntimeError("SOFTWARE_BENCHMARK_ANSWER_HASH_MISMATCH")
 
 summary = {
-    "schema_version": "staticai.foundation-curriculum.v2",
+    "schema_version": "staticai.foundation-curriculum.v3",
     "tokenizer_uri": tokenizer_uri,
     "tokenizer_sha256": tokenizer_sha,
     "stages": published,
@@ -292,5 +343,5 @@ summary = {
 }
 summary_path = ROOT / "CURRICULUM_MANIFEST.json"
 summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-upload(fs, summary_path, f"{BUCKET}/manifests/static_foundation_curriculum_v2.json")
+upload(fs, summary_path, f"{BUCKET}/manifests/static_foundation_curriculum_v3.json")
 print(json.dumps({"status": "CURRICULUM_PUBLISHED", "summary": summary}, default=str), flush=True)
